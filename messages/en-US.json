@@ -1,7 +1,7 @@
 {
   "Homepage": {
     "title": "Share <strong>Expenses</strong> with <strong>Friends & Family</strong>",
-    "description": "Welcome to your new <strong>Spliit</strong> instance !",
+    "description": "Welcome to dhar app - the easiest way to share expenses with your friends and family. Create a group, add participants, and start sharing expenses in seconds. This is a fork of the very popular Splitt open source project, and is a great replacement for Splitwise. It is free, open source, and self-hosted.", 
     "button": {
       "groups": "Go to groups",
       "github": "GitHub"

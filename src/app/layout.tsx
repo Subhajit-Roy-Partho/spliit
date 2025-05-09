@@ -14,6 +14,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { Suspense } from 'react'
 import './globals.css'
+import { SpeedInsights } from "@vercel/speed-insights/next"
 
 export const metadata: Metadata = {
   metadataBase: new URL(env.NEXT_PUBLIC_BASE_URL),
@@ -68,6 +69,7 @@ function Content({ children }: { children: React.ReactNode }) {
   return (
     <TRPCProvider>
       <header className="fixed top-0 left-0 right-0 h-16 flex justify-between bg-white dark:bg-gray-950 bg-opacity-50 dark:bg-opacity-50 p-2 border-b backdrop-blur-sm z-50">
+      <SpeedInsights/>
         <Link
           className="flex items-center gap-2 hover:scale-105 transition-transform"
           href="/"
