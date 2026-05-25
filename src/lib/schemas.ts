@@ -7,6 +7,7 @@ export const expenseItemSchema = z.object({
   id: z.string(),
   name: z.string(),
   amount: z.number().min(0),
+  sign: z.enum(['+', '-']).default('+'),
   excludedParticipants: z.array(z.string()),
 })
 

@@ -325,6 +325,7 @@ function ReceiptDialogContent() {
                 id: `receipt-item-${i}`,
                 name: item.name,
                 amount: item.amount,
+                sign: item.sign ?? '+',
                 excludedParticipants: [],
               }))
               localStorage.setItem('pendingReceiptItems', JSON.stringify(items))

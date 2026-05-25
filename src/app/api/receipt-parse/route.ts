@@ -7,7 +7,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import OpenAI from 'openai'
 
 const MODELS = {
-  accurate: process.env.NANOGPT_MODEL_ACCURATE ?? 'moonshotai/kimi-latest',
+  accurate: process.env.NANOGPT_MODEL_ACCURATE ?? 'alibaba/qwen3.6-27b',
   fast: process.env.NANOGPT_MODEL_FAST ?? 'alibaba/qwen3.6-27b',
 }
 
@@ -53,38 +53,44 @@ export async function POST(req: NextRequest) {
           content: [
             {
               type: 'text',
-              text: `Analyze this receipt image and extract the following information as JSON.
+              text: `Extract receipt data as JSON. Return ONLY valid JSON — no markdown, no code fences, no extra text.
 
-Return ONLY valid JSON with no markdown, no code blocks, no extra text.
+CRITICAL: Every item in the "items" array MUST have a "sign" field set to either "+" or "-". This is not optional.
 
-Schema:
+Output schema:
 {
-  "title": "short expense title (e.g. 'Dinner at Joe\\'s', 'Groceries', 'Amazon order')",
+  "title": "short store/expense name",
   "date": "YYYY-MM-DD or null",
-  "categoryId": "best matching category ID from list below, or null",
-  "total": <number: grand total as decimal, e.g. 45.50>,
+  "categoryId": "matching ID from category list or null",
+  "total": <grand total as positive decimal>,
   "items": [
-    { "name": "item name", "amount": <number: item price as decimal> },
-    ...
+    { "name": "item name", "amount": <positive decimal>, "sign": "+" },
+    { "name": "savings/discount name", "amount": <positive decimal>, "sign": "-" }
   ]
 }
 
-Categories: ${categories.map((c) => formatCategoryForAIPrompt(c)).join(', ')}
+sign field meaning:
+  "+" = adds to total (regular purchase, tax, tip, service charge)
+  "-" = subtracts from total (discount, savings, coupon, instant savings, reward)
+  amount is ALWAYS positive regardless of sign.
 
-Rules:
-- items should be individual line items, not subtotals/taxes/tips
-- if you cannot extract items, return items as []
-- amount values are decimals (not cents)
-- total is the grand total including tax/tips if visible
+Example — Costco with savings:
+  Input line: "ADIDAS FLEX   35.99"  → { "name": "ADIDAS FLEX", "amount": 35.99, "sign": "+" }
+  Input line: "/1955469       7.00-" → { "name": "ADIDAS FLEX Savings", "amount": 7.00, "sign": "-" }
+  Input line: "ORALB10CC     99.99"  → { "name": "ORALB10CC", "amount": 99.99, "sign": "+" }
+  Input line: "-A $30.00"            → { "name": "ORALB10CC Savings", "amount": 30.00, "sign": "-" }
+  Input line: "Tax            12.28" → { "name": "Tax", "amount": 12.28, "sign": "+" }
 
-Receipt format quirks to handle:
-- Costco / warehouse clubs: items sometimes show two prices — a shelf price and an instant savings line like "-A $X.XX". The real price is shelf price minus savings. Only include the net item price in amount.
-- Some receipts show a negative line (e.g. "-2.00") as a discount/coupon — subtract it from the item above it, do not include it as a separate item.
-- Tax (sales tax, GST, HST, VAT, etc.) — include as a separate item named "Tax" with its amount. It will be split equally.
-- Tip / gratuity — include as a separate item named "Tip" with its amount. It will be split equally.
-- Service charge — include as a separate item named "Service Charge" with its amount. It will be split equally.
-- Subtotals should NOT appear in items[].
-- If an item quantity > 1 (e.g. "2 @ 3.99"), amount should be the total for that line (2 × 3.99 = 7.98).`,
+Detection rules:
+- A line that starts with "/" followed by digits is a savings line → sign: "-"
+- A number with a trailing "-" (e.g. "7.00-") is a deduction → sign: "-"
+- Lines with "-A", "INSTANT SAVINGS", "COUPON", "DISCOUNT", "REWARD" → sign: "-"
+- Tax, Tip, Service Charge → sign: "+"
+- DO NOT pre-subtract discounts from the item above; list each as its own item
+- Exclude subtotal lines (lines labeled "Subtotal", "Before Tax")
+- Quantity > 1: amount = line total (e.g. 2 × 3.99 → amount: 7.98)
+
+Categories: ${categories.map((c) => formatCategoryForAIPrompt(c)).join(', ')}`,
             },
             {
               type: 'image_url',
@@ -108,7 +114,7 @@ Receipt format quirks to handle:
       items: Array.isArray(parsed.items)
         ? (parsed.items as unknown[])
             .filter(
-              (i): i is { name: string; amount: number } =>
+              (i): i is { name: string; amount: number; sign?: string } =>
                 typeof i === 'object' &&
                 i !== null &&
                 'name' in i &&
@@ -116,7 +122,8 @@ Receipt format quirks to handle:
             )
             .map((i) => ({
               name: String(i.name),
-              amount: Number(i.amount) || 0,
+              amount: Math.abs(Number(i.amount) || 0),
+              sign: (i.sign === '-' ? '-' : '+') as '+' | '-',
             }))
         : [],
     })

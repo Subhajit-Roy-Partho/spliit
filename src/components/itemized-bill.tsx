@@ -6,8 +6,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { ExpenseItem } from '@/lib/schemas'
 import { Currency } from '@/lib/currency'
-import { formatCurrency } from '@/lib/utils'
-import { ChevronDown, ChevronRight, Plus, Trash2 } from 'lucide-react'
+import { cn, formatCurrency } from '@/lib/utils'
+import { ChevronDown, ChevronRight, Minus, Plus, Trash2 } from 'lucide-react'
 import { useLocale } from 'next-intl'
 import { useId, useState } from 'react'
 
@@ -38,7 +38,8 @@ export function computePaidForFromItems(
       (p) => !item.excludedParticipants.includes(p.id),
     )
     if (included.length === 0) continue
-    const perPerson = item.amount / included.length
+    const effectiveAmount = (item.sign ?? '+') === '-' ? -item.amount : item.amount
+    const perPerson = effectiveAmount / included.length
     for (const p of included) {
       totals[p.id] = (totals[p.id] ?? 0) + perPerson
     }
@@ -57,11 +58,14 @@ export function ItemizedBill({ items, participants, currency, onChange }: Props)
   const baseId = useId()
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
 
-  const total = items.reduce((sum, item) => sum + item.amount, 0)
+  const total = items.reduce(
+    (sum, item) => sum + ((item.sign ?? '+') === '-' ? -item.amount : item.amount),
+    0,
+  )
 
   const addItem = () => {
     const id = `item-${Date.now()}`
-    onChange([...items, { id, name: '', amount: 0, excludedParticipants: [] }])
+    onChange([...items, { id, name: '', amount: 0, sign: '+', excludedParticipants: [] }])
     setExpanded((e) => ({ ...e, [id]: false }))
   }
 
@@ -71,6 +75,12 @@ export function ItemizedBill({ items, participants, currency, onChange }: Props)
 
   const removeItem = (id: string) => {
     onChange(items.filter((item) => item.id !== id))
+  }
+
+  const toggleSign = (id: string) => {
+    const item = items.find((i) => i.id === id)
+    if (!item) return
+    updateItem(id, { sign: (item.sign ?? '+') === '+' ? '-' : '+' })
   }
 
   const toggleExclude = (itemId: string, participantId: string) => {
@@ -88,11 +98,15 @@ export function ItemizedBill({ items, participants, currency, onChange }: Props)
         const includedCount =
           participants.length - item.excludedParticipants.length
         const isExpanded = expanded[item.id] ?? false
+        const isDeduction = (item.sign ?? '+') === '-'
 
         return (
           <div
             key={item.id}
-            className="border rounded-lg overflow-hidden"
+            className={cn(
+              'border rounded-lg overflow-hidden',
+              isDeduction && 'border-orange-300 dark:border-orange-700',
+            )}
           >
             {/* Main row */}
             <div className="flex items-center gap-2 px-3 py-2">
@@ -105,10 +119,29 @@ export function ItemizedBill({ items, participants, currency, onChange }: Props)
                 value={item.name}
                 onChange={(e) => updateItem(item.id, { name: e.target.value })}
               />
+              {/* Sign toggle */}
+              <button
+                type="button"
+                title={isDeduction ? 'Deduction (click to make addition)' : 'Addition (click to make deduction)'}
+                onClick={() => toggleSign(item.id)}
+                className={cn(
+                  'h-8 w-8 shrink-0 flex items-center justify-center rounded border text-xs font-bold transition-colors',
+                  isDeduction
+                    ? 'border-orange-400 text-orange-600 bg-orange-50 hover:bg-orange-100 dark:bg-orange-950 dark:text-orange-400 dark:border-orange-700'
+                    : 'border-border text-muted-foreground hover:border-primary hover:text-primary',
+                )}
+              >
+                {isDeduction ? <Minus className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
+              </button>
               <div className="flex items-center gap-1 shrink-0">
-                <span className="text-sm text-muted-foreground">{currency.symbol}</span>
+                <span className={cn('text-sm', isDeduction && 'text-orange-500')}>
+                  {currency.symbol}
+                </span>
                 <Input
-                  className="w-20 h-8 text-sm text-right"
+                  className={cn(
+                    'w-20 h-8 text-sm text-right',
+                    isDeduction && 'text-orange-600 dark:text-orange-400',
+                  )}
                   inputMode="decimal"
                   placeholder="0.00"
                   value={item.amount === 0 ? '' : item.amount}
@@ -147,11 +180,14 @@ export function ItemizedBill({ items, participants, currency, onChange }: Props)
             {isExpanded && (
               <div className="border-t bg-muted/30 px-3 py-2">
                 <p className="text-xs text-muted-foreground mb-2">
-                  Split among {includedCount} of {participants.length} participant
-                  {participants.length !== 1 ? 's' : ''}
+                  {isDeduction ? (
+                    <>Deduction split among {includedCount} of {participants.length} participant{participants.length !== 1 ? 's' : ''}</>
+                  ) : (
+                    <>Split among {includedCount} of {participants.length} participant{participants.length !== 1 ? 's' : ''}</>
+                  )}
                   {item.amount > 0 && includedCount > 0 && (
                     <span className="ml-1">
-                      ({formatCurrency(currency, Math.round(item.amount * 100 / includedCount), locale)} each)
+                      ({isDeduction ? '-' : ''}{formatCurrency(currency, Math.round(item.amount * 100 / includedCount), locale)} each)
                     </span>
                   )}
                 </p>

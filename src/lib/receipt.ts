@@ -21,7 +21,7 @@ export type ReceiptResult = {
   date: string | null
   categoryId: string | null
   total: number | null
-  items: { name: string; amount: number }[]
+  items: { name: string; amount: number; sign?: '+' | '-' }[]
 }
 
 export async function compressImageToBase64(file: File): Promise<string> {

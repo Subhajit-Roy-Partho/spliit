@@ -341,6 +341,7 @@ export function ExpenseForm({
           id: `receipt-item-${i}`,
           name: item.name,
           amount: item.amount,
+          sign: item.sign ?? '+',
           excludedParticipants: [] as string[],
         }))
         form.setValue('items', items as any, { shouldDirty: true })
@@ -365,7 +366,10 @@ export function ExpenseForm({
   useEffect(() => {
     if (!isItemizedMode) return
     const items = form.getValues('items') ?? []
-    const total = items.reduce((sum: number, i: ExpenseItem) => sum + i.amount, 0)
+    const total = items.reduce(
+      (sum: number, i: ExpenseItem) => sum + ((i.sign ?? '+') === '-' ? -i.amount : i.amount),
+      0,
+    )
     form.setValue('amount', total as any, { shouldDirty: true })
     form.setValue('splitMode', 'BY_AMOUNT', { shouldDirty: true })
     const paidFor = computePaidForFromItems(items, group.participants, groupCurrency)
@@ -855,7 +859,7 @@ export function ExpenseForm({
                           } else if ((form.getValues('items') ?? []).length === 0) {
                             form.setValue(
                               'items',
-                              [{ id: `item-${Date.now()}`, name: '', amount: 0, excludedParticipants: [] }],
+                              [{ id: `item-${Date.now()}`, name: '', amount: 0, sign: '+' as const, excludedParticipants: [] }],
                               { shouldDirty: true },
                             )
                           }
