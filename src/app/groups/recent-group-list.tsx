@@ -11,6 +11,8 @@ import { Card, CardContent } from '@/components/ui/card'
 import { getGroups } from '@/lib/api'
 import { trpc } from '@/trpc/client'
 import { AppRouterOutput } from '@/trpc/routers/_app'
+
+type MyGroupsData = AppRouterOutput['groups']['members']['listMyGroups']
 import { Loader2, Users } from 'lucide-react'
 import { useSession } from 'next-auth/react'
 import { useTranslations } from 'next-intl'
@@ -59,10 +61,16 @@ function sortGroups({
   return { starredGroupInfo, groupInfo, archivedGroupInfo }
 }
 
-function MyGroupsList({ recentGroupIds }: { recentGroupIds: string[] }) {
-  const { data, isLoading } = trpc.groups.members.listMyGroups.useQuery()
-
-  if (isLoading) {
+function MyGroupsList({
+  myGroupsData,
+  recentGroupIds,
+  myGroupIds,
+}: {
+  myGroupsData: MyGroupsData | undefined
+  recentGroupIds: string[]
+  myGroupIds: string[]
+}) {
+  if (!myGroupsData) {
     return (
       <p className="text-sm text-muted-foreground">
         <Loader2 className="w-4 h-4 inline animate-spin mr-1" />
@@ -71,20 +79,18 @@ function MyGroupsList({ recentGroupIds }: { recentGroupIds: string[] }) {
     )
   }
 
-  const myGroupIds = data?.groups.map((g) => g.id) ?? []
-
   return (
     <>
       <LinkRecentGroupsBanner recentGroupIds={recentGroupIds} myGroupIds={myGroupIds} />
 
-      {!data?.groups.length ? (
+      {!myGroupsData.groups.length ? (
         <p className="text-sm text-muted-foreground">
           You haven&apos;t claimed a participant in any group yet. Open a group
           link and claim your participant to see it here.
         </p>
       ) : (
         <ul className="grid gap-2 sm:grid-cols-2">
-          {data.groups.map((group) => (
+          {myGroupsData.groups.map((group) => (
             <li key={group.id}>
               <Card className="hover:bg-accent transition-colors">
                 <CardContent className="p-4 flex items-center justify-between">
@@ -162,9 +168,21 @@ function RecentGroupList_({
   const { data, isLoading } = trpc.groups.list.useQuery({
     groupIds: groups.map((group) => group.id),
   })
+  const { data: myGroupsData } = trpc.groups.members.listMyGroups.useQuery(
+    undefined,
+    { enabled: isAuthenticated },
+  )
+
+  const myGroupIds = myGroupsData?.groups.map((g) => g.id) ?? []
+
+  // Exclude groups already shown in "My Groups" from the recent/starred/archived lists
+  const recentGroups =
+    isAuthenticated && myGroupIds.length > 0
+      ? groups.filter((g) => !myGroupIds.includes(g.id))
+      : groups
 
   const { starredGroupInfo, groupInfo, archivedGroupInfo } = sortGroups({
-    groups,
+    groups: recentGroups,
     starredGroups,
     archivedGroups,
   })
@@ -174,7 +192,11 @@ function RecentGroupList_({
       {isAuthenticated && (
         <section className="mb-8">
           <h2 className="font-semibold text-lg mb-3">My Groups</h2>
-          <MyGroupsList recentGroupIds={groups.map((g) => g.id)} />
+          <MyGroupsList
+            myGroupsData={myGroupsData}
+            recentGroupIds={groups.map((g) => g.id)}
+            myGroupIds={myGroupIds}
+          />
         </section>
       )}
 
