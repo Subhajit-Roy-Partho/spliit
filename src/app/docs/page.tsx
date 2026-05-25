@@ -225,6 +225,19 @@ export default function DocsPage() {
                 handwritten receipts
               </li>
             </ul>
+            <p className="text-muted-foreground text-sm mt-2">
+              After selecting an image the crop tool opens automatically.
+              Smart crop pre-selects the receipt boundary — adjust if needed,
+              then click <strong>Crop &amp; Scan</strong>. Check{' '}
+              <strong>Reduce image size</strong> for faster processing on slow
+              connections.
+            </p>
+            <p className="text-muted-foreground text-sm mt-1">
+              Supported receipt quirks: Costco{' '}
+              <code className="text-xs bg-muted px-1 rounded">-A</code>{' '}
+              savings lines, negative discount lines, tax, tip, service charge
+              (added as separate items split equally), multi-quantity lines.
+            </p>
           </div>
 
           <div>

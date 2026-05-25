@@ -507,9 +507,28 @@ Output:
 
 | Variable | Value |
 |---|---|
-| `NANOGPT_API_KEY` | `sk-nano-...` (rotate regularly) |
+| `NANOGPT_API_KEY` | Rotate in Vercel dashboard — never commit |
 | `NANOGPT_BASE_URL` | `https://nano-gpt.com/api/v1` |
-| `NANOGPT_MODEL` | Optional override for the server action default |
+| `NANOGPT_MODEL_ACCURATE` | Override accurate model (default: `moonshotai/kimi-latest`) |
+| `NANOGPT_MODEL_FAST` | Override fast model (default: `alibaba/qwen3.6-27b`) |
+| `NEXT_PUBLIC_ENABLE_RECEIPT_EXTRACT` | `true` to show the scan button |
+
+### Testing locally
+
+```bash
+# After setting NANOGPT_API_KEY and NANOGPT_BASE_URL in .env.local:
+node test/test-receipt.mjs                        # uses bundled Costco sample
+node test/test-receipt.mjs path/to/receipt.jpg    # custom image
+node test/test-receipt.mjs receipt.jpg alibaba/qwen3.6-27b  # specific model
+```
+
+### Receipt cropper
+
+`src/components/receipt-cropper.tsx` — modal shown between file selection and LLM call:
+- `smartcrop` runs automatically on image load and pre-sets the crop region
+- User can drag to adjust
+- Optional "Reduce image size" checkbox uses `browser-image-compression` (0.5 MB / 1200px)
+- `onConfirm(base64)` is called with the cropped, optionally-compressed base64 JPEG
 
 ---
 
