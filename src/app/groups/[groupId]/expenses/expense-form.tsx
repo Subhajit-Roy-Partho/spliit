@@ -57,11 +57,12 @@ import { RecurrenceRule } from '@prisma/client'
 import { ItemizedBill, computePaidForFromItems } from '@/components/itemized-bill'
 import { Switch } from '@/components/ui/switch'
 import { ExpenseItem, expenseItemSchema } from '@/lib/schemas'
-import { ChevronRight, Save } from 'lucide-react'
+import { Camera, ChevronRight, Images, Loader2, Receipt, Save, ScanSearch, Zap } from 'lucide-react'
+import { compressImageToBase64, scanReceipt } from '@/lib/receipt'
 import { useLocale, useTranslations } from 'next-intl'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { match } from 'ts-pattern'
 import { DeletePopup } from '../../../../components/delete-popup'
@@ -316,6 +317,42 @@ export function ExpenseForm({
   const [isItemizedMode, setIsItemizedMode] = useState(
     () => (form.getValues('items') ?? []).length > 0,
   )
+  const [scanPending, setScanPending] = useState(false)
+  const [scanModel, setScanModel] = useState<'fast' | 'accurate'>('accurate')
+  const [showModelPicker, setShowModelPicker] = useState(false)
+  const galleryInputRef = useRef<HTMLInputElement>(null)
+  const cameraInputRef = useRef<HTMLInputElement>(null)
+
+  const handleReceiptFile = async (file: File) => {
+    try {
+      setScanPending(true)
+      setShowModelPicker(false)
+      const base64 = await compressImageToBase64(file)
+      const result = await scanReceipt(base64, scanModel)
+      if (result.title) form.setValue('title', result.title, { shouldDirty: true })
+      if (result.date) {
+        const d = new Date(`${result.date}T12:00:00Z`)
+        if (!isNaN(d.getTime())) form.setValue('expenseDate', d, { shouldDirty: true })
+      }
+      if (result.categoryId) form.setValue('category', Number(result.categoryId), { shouldDirty: true })
+      if (result.items && result.items.length > 0) {
+        const items = result.items.map((item, i) => ({
+          id: `receipt-item-${i}`,
+          name: item.name,
+          amount: item.amount,
+          excludedParticipants: [] as string[],
+        }))
+        form.setValue('items', items as any, { shouldDirty: true })
+        setIsItemizedMode(true)
+      } else if (result.total) {
+        form.setValue('amount', result.total as any, { shouldDirty: true })
+      }
+    } catch (err) {
+      console.error('[receipt scan]', err)
+    } finally {
+      setScanPending(false)
+    }
+  }
 
   // Sync items → amount + paidFor whenever items change in itemized mode
   const watchedItems = form.watch('items')
@@ -478,9 +515,85 @@ export function ExpenseForm({
       <form onSubmit={form.handleSubmit(submit)}>
         <Card>
           <CardHeader>
-            <CardTitle>
-              {t(`${sExpense}.${isCreate ? 'create' : 'edit'}`)}
-            </CardTitle>
+            <div className="flex items-center justify-between gap-2">
+              <CardTitle>
+                {t(`${sExpense}.${isCreate ? 'create' : 'edit'}`)}
+              </CardTitle>
+              <div className="relative flex items-center gap-1">
+                {/* Hidden file inputs */}
+                <input
+                  ref={galleryInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0]
+                    if (f) handleReceiptFile(f)
+                    e.target.value = ''
+                  }}
+                />
+                <input
+                  ref={cameraInputRef}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  className="hidden"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0]
+                    if (f) handleReceiptFile(f)
+                    e.target.value = ''
+                  }}
+                />
+                {showModelPicker && (
+                  <div className="absolute right-0 top-8 z-10 bg-popover border rounded-lg shadow-md p-2 flex flex-col gap-1 min-w-[160px]">
+                    <p className="text-xs text-muted-foreground px-2 pb-1">Scan mode</p>
+                    {(['accurate', 'fast'] as const).map((m) => (
+                      <button
+                        key={m}
+                        type="button"
+                        onClick={() => { setScanModel(m); setShowModelPicker(false) }}
+                        className={`flex items-center gap-2 px-2 py-1.5 rounded text-xs text-left transition-colors ${scanModel === m ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}`}
+                      >
+                        {m === 'accurate' ? <ScanSearch className="w-3 h-3" /> : <Zap className="w-3 h-3" />}
+                        {m === 'accurate' ? 'Accurate' : 'Fast'}
+                      </button>
+                    ))}
+                    <hr className="my-1" />
+                    <button
+                      type="button"
+                      onClick={() => { setShowModelPicker(false); galleryInputRef.current?.click() }}
+                      className="flex items-center gap-2 px-2 py-1.5 rounded text-xs hover:bg-muted text-left"
+                    >
+                      <Images className="w-3 h-3" />
+                      Choose from Gallery
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setShowModelPicker(false); cameraInputRef.current?.click() }}
+                      className="flex items-center gap-2 px-2 py-1.5 rounded text-xs hover:bg-muted text-left"
+                    >
+                      <Camera className="w-3 h-3" />
+                      Take Photo
+                    </button>
+                  </div>
+                )}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center gap-1.5 text-xs"
+                  disabled={scanPending}
+                  onClick={() => setShowModelPicker((v) => !v)}
+                >
+                  {scanPending ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Receipt className="w-3.5 h-3.5" />
+                  )}
+                  {scanPending ? 'Scanning…' : 'Scan receipt'}
+                </Button>
+              </div>
+            </div>
           </CardHeader>
           <CardContent className="grid sm:grid-cols-2 gap-6">
             <FormField

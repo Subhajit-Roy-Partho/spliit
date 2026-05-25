@@ -1,10 +1,6 @@
 'use client'
 
 import { CategoryIcon } from '@/app/groups/[groupId]/expenses/category-icon'
-import {
-  ReceiptExtractedInfo,
-  extractExpenseInformationFromImage,
-} from '@/app/groups/[groupId]/expenses/create-from-receipt-button-actions'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -26,24 +22,29 @@ import {
 import { ToastAction } from '@/components/ui/toast'
 import { useToast } from '@/components/ui/use-toast'
 import { useMediaQuery } from '@/lib/hooks'
+import { ReceiptResult, compressImageToBase64, scanReceipt } from '@/lib/receipt'
 import {
   formatCurrency,
   formatDate,
-  formatFileSize,
   getCurrencyFromGroup,
 } from '@/lib/utils'
 import { trpc } from '@/trpc/client'
-import { ChevronRight, FileQuestion, Loader2, Receipt, Zap, ScanSearch } from 'lucide-react'
+import {
+  Camera,
+  ChevronRight,
+  FileQuestion,
+  Images,
+  Loader2,
+  Receipt,
+  ScanSearch,
+  Zap,
+} from 'lucide-react'
 import { useLocale, useTranslations } from 'next-intl'
-import { getImageData, usePresignedUpload } from 'next-s3-upload'
-import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-import { PropsWithChildren, ReactNode, useState } from 'react'
+import { PropsWithChildren, ReactNode, useRef, useState } from 'react'
 import { useCurrentGroup } from '../current-group-context'
 
 type ModelMode = 'fast' | 'accurate'
-
-const MAX_FILE_SIZE = 5 * 1024 ** 2
 
 export function CreateFromReceiptButton() {
   const t = useTranslations('CreateFromReceipt')
@@ -88,64 +89,32 @@ function ReceiptDialogContent() {
   const t = useTranslations('CreateFromReceipt')
   const [pending, setPending] = useState(false)
   const [modelMode, setModelMode] = useState<ModelMode>('accurate')
-  const { uploadToS3, FileInput, openFileDialog } = usePresignedUpload()
+  const [receiptInfo, setReceiptInfo] = useState<
+    (ReceiptResult & { previewUrl: string }) | null
+  >(null)
   const { toast } = useToast()
   const router = useRouter()
-  const [receiptInfo, setReceiptInfo] = useState<
-    | null
-    | (ReceiptExtractedInfo & {
-        url: string
-        width?: number
-        height?: number
-        items?: { name: string; amount: number }[]
-      })
-  >(null)
 
-  const handleFileChange = async (file: File) => {
-    if (file.size > MAX_FILE_SIZE) {
-      toast({
-        title: t('TooBigToast.title'),
-        description: t('TooBigToast.description', {
-          maxSize: formatFileSize(MAX_FILE_SIZE, locale),
-          size: formatFileSize(file.size, locale),
-        }),
-        variant: 'destructive',
-      })
-      return
-    }
+  const galleryRef = useRef<HTMLInputElement>(null)
+  const cameraRef = useRef<HTMLInputElement>(null)
 
-    const upload = async () => {
+  const handleFile = async (file: File) => {
+    const previewUrl = URL.createObjectURL(file)
+    const run = async () => {
       try {
         setPending(true)
-        let { url } = await uploadToS3(file)
-        // Run basic extraction + itemized extraction in parallel
-        const [basic, itemsRes] = await Promise.allSettled([
-          extractExpenseInformationFromImage(url),
-          fetch('/api/receipt-parse', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ imageUrl: url, model: modelMode }),
-          }).then((r) => r.json() as Promise<{ items?: { name: string; amount: number }[] }>),
-        ])
-        const { width, height } = await getImageData(file)
-        const { amount, categoryId, date, title } =
-          basic.status === 'fulfilled' ? basic.value : { amount: 0, categoryId: null, date: null, title: null }
-        const items =
-          itemsRes.status === 'fulfilled' && Array.isArray(itemsRes.value?.items)
-            ? itemsRes.value.items
-            : ([] as { name: string; amount: number }[])
-        setReceiptInfo({ amount, categoryId, date, title, url, width, height, items })
+        const base64 = await compressImageToBase64(file)
+        const result = await scanReceipt(base64, modelMode)
+        setReceiptInfo({ ...result, previewUrl })
       } catch (err) {
         console.error(err)
+        URL.revokeObjectURL(previewUrl)
         toast({
           title: t('ErrorToast.title'),
           description: t('ErrorToast.description'),
           variant: 'destructive',
           action: (
-            <ToastAction
-              altText={t('ErrorToast.retry')}
-              onClick={() => upload()}
-            >
+            <ToastAction altText={t('ErrorToast.retry')} onClick={() => run()}>
               {t('ErrorToast.retry')}
             </ToastAction>
           ),
@@ -154,7 +123,13 @@ function ReceiptDialogContent() {
         setPending(false)
       }
     }
-    upload()
+    run()
+  }
+
+  const onInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) handleFile(file)
+    e.target.value = ''
   }
 
   const receiptInfoCategory =
@@ -166,6 +141,7 @@ function ReceiptDialogContent() {
     <div className="prose prose-sm dark:prose-invert">
       <p>{t('Dialog.body')}</p>
       <div>
+        {/* Model selector */}
         <div className="flex gap-2 mb-3">
           <button
             type="button"
@@ -192,33 +168,62 @@ function ReceiptDialogContent() {
             Accurate
           </button>
         </div>
-        <FileInput onChange={handleFileChange} accept="image/jpeg,image/png" />
+
+        {/* Hidden inputs */}
+        <input
+          ref={galleryRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={onInputChange}
+        />
+        <input
+          ref={cameraRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          className="hidden"
+          onChange={onInputChange}
+        />
+
         <div className="grid gap-x-4 gap-y-2 grid-cols-3">
-          <Button
-            variant="secondary"
-            className="row-span-3 w-full h-full relative"
-            title="Create expense from receipt"
-            onClick={openFileDialog}
-            disabled={pending}
-          >
-            {pending ? (
-              <Loader2 className="w-8 h-8 animate-spin" />
-            ) : receiptInfo ? (
-              <div className="absolute top-2 left-2 bottom-2 right-2">
-                <Image
-                  src={receiptInfo.url}
-                  width={receiptInfo.width}
-                  height={receiptInfo.height}
-                  className="w-full h-full m-0 object-contain drop-shadow-lg"
+          {/* Image preview / pick area */}
+          <div className="row-span-3 flex flex-col gap-1.5">
+            <Button
+              variant="secondary"
+              className="flex-1 w-full relative min-h-[80px]"
+              title="Choose from gallery"
+              onClick={() => galleryRef.current?.click()}
+              disabled={pending}
+            >
+              {pending ? (
+                <Loader2 className="w-8 h-8 animate-spin" />
+              ) : receiptInfo ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={receiptInfo.previewUrl}
+                  className="absolute inset-2 w-[calc(100%-1rem)] h-[calc(100%-1rem)] object-contain drop-shadow-lg"
                   alt="Scanned receipt"
                 />
-              </div>
-            ) : (
-              <span className="text-xs sm:text-sm text-muted-foreground">
-                {t('Dialog.selectImage')}
-              </span>
-            )}
-          </Button>
+              ) : (
+                <span className="flex flex-col items-center gap-1 text-xs text-muted-foreground">
+                  <Images className="w-5 h-5" />
+                  {t('Dialog.selectImage')}
+                </span>
+              )}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full text-xs gap-1.5"
+              onClick={() => cameraRef.current?.click()}
+              disabled={pending}
+            >
+              <Camera className="w-3.5 h-3.5" />
+              Camera
+            </Button>
+          </div>
+
           <div className="col-span-2">
             <strong>{t('Dialog.titleLabel')}</strong>
             <div>{receiptInfo ? receiptInfo.title ?? <Unknown /> : '…'}</div>
@@ -249,15 +254,13 @@ function ReceiptDialogContent() {
             <strong>{t('Dialog.amountLabel')}</strong>
             <div>
               {receiptInfo && group ? (
-                receiptInfo.amount ? (
-                  <>
-                    {formatCurrency(
-                      getCurrencyFromGroup(group),
-                      receiptInfo.amount,
-                      locale,
-                      true,
-                    )}
-                  </>
+                receiptInfo.total ? (
+                  formatCurrency(
+                    getCurrencyFromGroup(group),
+                    receiptInfo.total,
+                    locale,
+                    true,
+                  )
                 ) : (
                   <Unknown />
                 )
@@ -272,7 +275,7 @@ function ReceiptDialogContent() {
               {receiptInfo ? (
                 receiptInfo.date ? (
                   formatDate(
-                    new Date(`${receiptInfo?.date}T12:00:00.000Z`),
+                    new Date(`${receiptInfo.date}T12:00:00.000Z`),
                     locale,
                     { dateStyle: 'medium' },
                   )
@@ -290,7 +293,9 @@ function ReceiptDialogContent() {
       <div className="text-center">
         {receiptInfo?.items && receiptInfo.items.length > 0 && (
           <p className="text-sm text-muted-foreground mt-1 mb-2">
-            ✓ {receiptInfo.items.length} item{receiptInfo.items.length !== 1 ? 's' : ''} detected — itemized bill will be pre-filled
+            ✓ {receiptInfo.items.length} item
+            {receiptInfo.items.length !== 1 ? 's' : ''} detected — itemized
+            bill will be pre-filled
           </p>
         )}
         <Button
@@ -308,14 +313,10 @@ function ReceiptDialogContent() {
             }
             router.push(
               `/groups/${group.id}/expenses/create?amount=${
-                receiptInfo.amount
+                receiptInfo.total ?? 0
               }&categoryId=${receiptInfo.categoryId}&date=${
                 receiptInfo.date
-              }&title=${encodeURIComponent(
-                receiptInfo.title ?? '',
-              )}&imageUrl=${encodeURIComponent(receiptInfo.url)}&imageWidth=${
-                receiptInfo.width
-              }&imageHeight=${receiptInfo.height}`,
+              }&title=${encodeURIComponent(receiptInfo.title ?? '')}`,
             )
           }}
         >
