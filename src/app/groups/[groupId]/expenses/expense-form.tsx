@@ -54,6 +54,9 @@ import {
 import { AppRouterOutput } from '@/trpc/routers/_app'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { RecurrenceRule } from '@prisma/client'
+import { ItemizedBill, computePaidForFromItems } from '@/components/itemized-bill'
+import { Switch } from '@/components/ui/switch'
+import { ExpenseItem, expenseItemSchema } from '@/lib/schemas'
 import { ChevronRight, Save } from 'lucide-react'
 import { useLocale, useTranslations } from 'next-intl'
 import Link from 'next/link'
@@ -207,6 +210,9 @@ export function ExpenseForm({
           documents: expense.documents,
           notes: expense.notes ?? '',
           recurrenceRule: expense.recurrenceRule ?? undefined,
+          items: Array.isArray(expense.items)
+            ? expenseItemSchema.array().parse(expense.items)
+            : [],
         }
       : searchParams.get('reimbursement')
       ? {
@@ -266,6 +272,17 @@ export function ExpenseForm({
             : [],
           notes: '',
           recurrenceRule: RecurrenceRule.NONE,
+          items: (() => {
+            if (typeof window === 'undefined') return []
+            try {
+              const pending = localStorage.getItem('pendingReceiptItems')
+              if (pending) {
+                localStorage.removeItem('pendingReceiptItems')
+                return expenseItemSchema.array().parse(JSON.parse(pending))
+              }
+            } catch {}
+            return []
+          })(),
         },
   })
   const [isCategoryLoading, setCategoryLoading] = useState(false)
@@ -296,6 +313,23 @@ export function ExpenseForm({
   const [manuallyEditedParticipants, setManuallyEditedParticipants] = useState<
     Set<string>
   >(new Set())
+  const [isItemizedMode, setIsItemizedMode] = useState(
+    () => (form.getValues('items') ?? []).length > 0,
+  )
+
+  // Sync items → amount + paidFor whenever items change in itemized mode
+  const watchedItems = form.watch('items')
+  useEffect(() => {
+    if (!isItemizedMode) return
+    const items = form.getValues('items') ?? []
+    const total = items.reduce((sum: number, i: ExpenseItem) => sum + i.amount, 0)
+    form.setValue('amount', total as any, { shouldDirty: true })
+    form.setValue('splitMode', 'BY_AMOUNT', { shouldDirty: true })
+    const paidFor = computePaidForFromItems(items, group.participants, groupCurrency)
+    if (paidFor.length > 0) {
+      form.setValue('paidFor', paidFor as any, { shouldDirty: true, shouldValidate: true })
+    }
+  }, [watchedItems, isItemizedMode])
 
   const sExpense = isIncome ? 'Income' : 'Expense'
 
@@ -674,7 +708,28 @@ export function ExpenseForm({
               name="amount"
               render={({ field: { onChange, ...field } }) => (
                 <FormItem className="sm:order-5">
-                  <FormLabel>{t('amountField.label')}</FormLabel>
+                  <div className="flex items-center justify-between">
+                    <FormLabel>{t('amountField.label')}</FormLabel>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <span>Itemized</span>
+                      <Switch
+                        checked={isItemizedMode}
+                        onCheckedChange={(checked) => {
+                          setIsItemizedMode(checked)
+                          if (!checked) {
+                            form.setValue('items', [], { shouldDirty: true })
+                            form.setValue('splitMode', 'EVENLY', { shouldDirty: true })
+                          } else if ((form.getValues('items') ?? []).length === 0) {
+                            form.setValue(
+                              'items',
+                              [{ id: `item-${Date.now()}`, name: '', amount: 0, excludedParticipants: [] }],
+                              { shouldDirty: true },
+                            )
+                          }
+                        }}
+                      />
+                    </div>
+                  </div>
                   <div className="flex items-baseline gap-2">
                     <span>{group.currency}</span>
                     <FormControl>
@@ -683,7 +738,9 @@ export function ExpenseForm({
                         type="text"
                         inputMode="decimal"
                         placeholder="0.00"
+                        readOnly={isItemizedMode}
                         onChange={(event) => {
+                          if (isItemizedMode) return
                           const v = enforceCurrencyPattern(event.target.value)
                           const income = Number(v) < 0
                           setIsIncome(income)
@@ -701,7 +758,7 @@ export function ExpenseForm({
                   </div>
                   <FormMessage />
 
-                  {!isIncome && (
+                  {!isIncome && !isItemizedMode && (
                     <FormField
                       control={form.control}
                       name="isReimbursement"
@@ -725,6 +782,27 @@ export function ExpenseForm({
                 </FormItem>
               )}
             />
+
+            {isItemizedMode && (
+              <div className="col-span-2 sm:order-6">
+                <FormField
+                  control={form.control}
+                  name="items"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Items</FormLabel>
+                      <ItemizedBill
+                        items={field.value ?? []}
+                        participants={group.participants}
+                        currency={groupCurrency}
+                        onChange={field.onChange}
+                      />
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            )}
 
             <FormField
               control={form.control}

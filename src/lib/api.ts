@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { ExpenseFormValues, GroupFormValues } from '@/lib/schemas'
 import {
@@ -105,6 +106,9 @@ export async function createExpense(
         },
       },
       notes: expenseFormValues.notes,
+      items: expenseFormValues.items?.length
+        ? (expenseFormValues.items as Prisma.InputJsonValue)
+        : undefined,
     },
   })
 }
@@ -280,6 +284,9 @@ export async function updateExpense(
           })),
       },
       notes: expenseFormValues.notes,
+      items: expenseFormValues.items?.length
+        ? (expenseFormValues.items as Prisma.InputJsonValue)
+        : Prisma.DbNull,
     },
   })
 }
@@ -490,6 +497,7 @@ async function createRecurringExpenses() {
         paidBy,
         paidFor,
         documents,
+        items: _items,
         ...destructeredCurrentExpenseRecord
       } = currentExpenseRecord
 

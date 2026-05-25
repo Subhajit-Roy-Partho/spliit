@@ -90,7 +90,12 @@ function ReceiptDialogContent() {
   const router = useRouter()
   const [receiptInfo, setReceiptInfo] = useState<
     | null
-    | (ReceiptExtractedInfo & { url: string; width?: number; height?: number })
+    | (ReceiptExtractedInfo & {
+        url: string
+        width?: number
+        height?: number
+        items?: { name: string; amount: number }[]
+      })
   >(null)
 
   const handleFileChange = async (file: File) => {
@@ -109,13 +114,24 @@ function ReceiptDialogContent() {
     const upload = async () => {
       try {
         setPending(true)
-        console.log('Uploading image…')
         let { url } = await uploadToS3(file)
-        console.log('Extracting information from receipt…')
-        const { amount, categoryId, date, title } =
-          await extractExpenseInformationFromImage(url)
+        // Run basic extraction + itemized extraction in parallel
+        const [basic, itemsRes] = await Promise.allSettled([
+          extractExpenseInformationFromImage(url),
+          fetch('/api/receipt-parse', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ imageUrl: url }),
+          }).then((r) => r.json() as Promise<{ items?: { name: string; amount: number }[] }>),
+        ])
         const { width, height } = await getImageData(file)
-        setReceiptInfo({ amount, categoryId, date, title, url, width, height })
+        const { amount, categoryId, date, title } =
+          basic.status === 'fulfilled' ? basic.value : { amount: 0, categoryId: null, date: null, title: null }
+        const items =
+          itemsRes.status === 'fulfilled' && Array.isArray(itemsRes.value?.items)
+            ? itemsRes.value.items
+            : ([] as { name: string; amount: number }[])
+        setReceiptInfo({ amount, categoryId, date, title, url, width, height, items })
       } catch (err) {
         console.error(err)
         toast({
@@ -243,10 +259,24 @@ function ReceiptDialogContent() {
       </div>
       <p>{t('Dialog.editNext')}</p>
       <div className="text-center">
+        {receiptInfo?.items && receiptInfo.items.length > 0 && (
+          <p className="text-sm text-muted-foreground mt-1 mb-2">
+            ✓ {receiptInfo.items.length} item{receiptInfo.items.length !== 1 ? 's' : ''} detected — itemized bill will be pre-filled
+          </p>
+        )}
         <Button
           disabled={pending || !receiptInfo}
           onClick={() => {
             if (!receiptInfo || !group) return
+            if (receiptInfo.items && receiptInfo.items.length > 0) {
+              const items = receiptInfo.items.map((item, i) => ({
+                id: `receipt-item-${i}`,
+                name: item.name,
+                amount: item.amount,
+                excludedParticipants: [],
+              }))
+              localStorage.setItem('pendingReceiptItems', JSON.stringify(items))
+            }
             router.push(
               `/groups/${group.id}/expenses/create?amount=${
                 receiptInfo.amount

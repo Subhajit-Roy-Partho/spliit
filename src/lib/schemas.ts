@@ -3,6 +3,15 @@ import Decimal from 'decimal.js'
 
 import * as z from 'zod'
 
+export const expenseItemSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  amount: z.number().min(0),
+  excludedParticipants: z.array(z.string()),
+})
+
+export type ExpenseItem = z.infer<typeof expenseItemSchema>
+
 export const groupFormSchema = z
   .object({
     name: z.string().min(2, 'min2').max(50, 'max50'),
@@ -136,6 +145,7 @@ export const expenseFormSchema = z
       )
       .default([]),
     notes: z.string().optional(),
+    items: z.array(expenseItemSchema).optional().default([]),
     recurrenceRule: z
       .enum<RecurrenceRule, [RecurrenceRule, ...RecurrenceRule[]]>(
         Object.values(RecurrenceRule) as any,
