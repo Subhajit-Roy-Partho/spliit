@@ -1,3 +1,5 @@
+export const maxDuration = 60
+
 import { auth } from '@/auth'
 import { getCategories } from '@/lib/api'
 import { formatCategoryForAIPrompt } from '@/lib/utils'
@@ -119,7 +121,8 @@ Receipt format quirks to handle:
         : [],
     })
   } catch (err) {
-    console.error('[receipt-parse]', err)
-    return NextResponse.json({ error: 'Extraction failed' }, { status: 500 })
+    const message = err instanceof Error ? err.message : String(err)
+    console.error('[receipt-parse]', message)
+    return NextResponse.json({ error: `Extraction failed: ${message}` }, { status: 500 })
   }
 }

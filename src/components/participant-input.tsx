@@ -1,23 +1,9 @@
 'use client'
 
-import { Button } from '@/components/ui/button'
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from '@/components/ui/command'
 import { Input } from '@/components/ui/input'
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover'
 import { trpc } from '@/trpc/client'
 import { useSession } from 'next-auth/react'
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { useDebounce } from 'use-debounce'
 
 type Props = {
@@ -27,92 +13,61 @@ type Props = {
   className?: string
 }
 
-export function ParticipantInput({ value, onChange, placeholder, className }: Props) {
+export function ParticipantInput({
+  value,
+  onChange,
+  placeholder,
+  className,
+}: Props) {
   const { status } = useSession()
-  const [open, setOpen] = useState(false)
-  const [inputValue, setInputValue] = useState(value)
-  const [debouncedQuery] = useDebounce(inputValue, 300)
-  const didMount = useRef(false)
+  const [focused, setFocused] = useState(false)
+  const [debouncedQuery] = useDebounce(value, 300)
+  const containerRef = useRef<HTMLDivElement>(null)
 
   const { data } = trpc.users.search.useQuery(
     { query: debouncedQuery },
-    { enabled: status === 'authenticated' && debouncedQuery.length >= 1 },
+    {
+      enabled:
+        status === 'authenticated' && focused && debouncedQuery.length >= 1,
+    },
   )
 
-  // Sync external value changes (e.g. form reset)
-  useEffect(() => {
-    if (!didMount.current) { didMount.current = true; return }
-    setInputValue(value)
-  }, [value])
-
-  const handleInputChange = (newVal: string) => {
-    setInputValue(newVal)
-    onChange(newVal)
-    if (status === 'authenticated' && newVal.length >= 1) {
-      setOpen(true)
-    } else {
-      setOpen(false)
-    }
-  }
-
-  const handleSelect = (name: string) => {
-    setInputValue(name)
-    onChange(name)
-    setOpen(false)
-  }
-
-  // For unauthenticated users, just render a plain input
-  if (status !== 'authenticated') {
-    return (
-      <Input
-        className={className ?? 'text-base'}
-        value={inputValue}
-        onChange={(e) => handleInputChange(e.target.value)}
-        placeholder={placeholder}
-      />
-    )
-  }
+  const suggestions = data?.users ?? []
+  const showDropdown = focused && suggestions.length > 0
 
   return (
-    <Popover open={open && (data?.users.length ?? 0) > 0} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Input
-          className={className ?? 'text-base'}
-          value={inputValue}
-          onChange={(e) => handleInputChange(e.target.value)}
-          placeholder={placeholder}
-          onFocus={() => {
-            if (inputValue.length >= 1 && (data?.users.length ?? 0) > 0) {
-              setOpen(true)
-            }
-          }}
-        />
-      </PopoverTrigger>
-      <PopoverContent className="w-[220px] p-0" align="start">
-        <Command>
-          <CommandList>
-            <CommandEmpty>No registered users found</CommandEmpty>
-            <CommandGroup heading="Registered users">
-              {data?.users.map((user) => (
-                <CommandItem
-                  key={user.id}
-                  value={user.name ?? user.email}
-                  onSelect={() => handleSelect(user.name ?? user.email)}
-                >
-                  <div className="flex flex-col">
-                    <span>{user.name ?? user.email}</span>
-                    {user.name && (
-                      <span className="text-xs text-muted-foreground">
-                        {user.email}
-                      </span>
-                    )}
-                  </div>
-                </CommandItem>
-              ))}
-            </CommandGroup>
-          </CommandList>
-        </Command>
-      </PopoverContent>
-    </Popover>
+    <div ref={containerRef} className="relative">
+      <Input
+        className={className ?? 'text-base'}
+        value={value}
+        placeholder={placeholder}
+        onChange={(e) => onChange(e.target.value)}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setTimeout(() => setFocused(false), 150)}
+      />
+      {showDropdown && (
+        <div className="absolute z-50 top-full mt-1 left-0 right-0 rounded-md border bg-popover shadow-md text-sm overflow-hidden">
+          {suggestions.map((user) => (
+            <button
+              key={user.id}
+              type="button"
+              className="w-full text-left px-3 py-2 hover:bg-muted flex flex-col"
+              onMouseDown={(e) => {
+                e.preventDefault()
+                onChange(user.name ?? user.email)
+                setFocused(false)
+              }}
+            >
+              <span>{user.name ?? user.email}</span>
+              {user.name && (
+                <span className="text-xs text-muted-foreground">
+                  {user.email}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   )
 }

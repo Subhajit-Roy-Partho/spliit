@@ -1,5 +1,6 @@
 import { createExpense } from '@/lib/api'
 import { expenseFormSchema } from '@/lib/schemas'
+import { prisma } from '@/lib/prisma'
 import { baseProcedure } from '@/trpc/init'
 import { z } from 'zod'
 
@@ -18,6 +19,7 @@ export const createGroupExpenseProcedure = baseProcedure
         groupId,
         participantId,
       )
+      await prisma.group.update({ where: { id: groupId }, data: { updatedAt: new Date() } })
       return { expenseId: expense.id }
     },
   )

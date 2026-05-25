@@ -1,3 +1,21 @@
+export async function compressImage(
+  file: File,
+  aggressive: boolean,
+): Promise<string> {
+  let workingFile = file
+  if (aggressive) {
+    const { default: imageCompression } = await import(
+      'browser-image-compression'
+    )
+    workingFile = await imageCompression(file, {
+      maxSizeMB: 0.5,
+      maxWidthOrHeight: 1200,
+      useWebWorker: true,
+    })
+  }
+  return compressImageToBase64(workingFile)
+}
+
 export type ReceiptResult = {
   title: string | null
   date: string | null

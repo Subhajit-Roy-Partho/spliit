@@ -58,7 +58,8 @@ import { ItemizedBill, computePaidForFromItems } from '@/components/itemized-bil
 import { Switch } from '@/components/ui/switch'
 import { ExpenseItem, expenseItemSchema } from '@/lib/schemas'
 import { Camera, ChevronRight, Images, Loader2, Receipt, Save, ScanSearch, Zap } from 'lucide-react'
-import { compressImageToBase64, scanReceipt } from '@/lib/receipt'
+import { ReceiptCropper } from '@/components/receipt-cropper'
+import { scanReceipt } from '@/lib/receipt'
 import { useLocale, useTranslations } from 'next-intl'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
@@ -320,14 +321,14 @@ export function ExpenseForm({
   const [scanPending, setScanPending] = useState(false)
   const [scanModel, setScanModel] = useState<'fast' | 'accurate'>('accurate')
   const [showModelPicker, setShowModelPicker] = useState(false)
+  const [cropSrc, setCropSrc] = useState<{ url: string; file: File } | null>(null)
   const galleryInputRef = useRef<HTMLInputElement>(null)
   const cameraInputRef = useRef<HTMLInputElement>(null)
 
-  const handleReceiptFile = async (file: File) => {
+  const runScanFromBase64 = async (base64: string) => {
     try {
       setScanPending(true)
       setShowModelPicker(false)
-      const base64 = await compressImageToBase64(file)
       const result = await scanReceipt(base64, scanModel)
       if (result.title) form.setValue('title', result.title, { shouldDirty: true })
       if (result.date) {
@@ -352,6 +353,11 @@ export function ExpenseForm({
     } finally {
       setScanPending(false)
     }
+  }
+
+  const handleReceiptFile = (file: File) => {
+    setShowModelPicker(false)
+    setCropSrc({ url: URL.createObjectURL(file), file })
   }
 
   // Sync items → amount + paidFor whenever items change in itemized mode
@@ -512,6 +518,20 @@ export function ExpenseForm({
 
   return (
     <Form {...form}>
+      {cropSrc && (
+        <ReceiptCropper
+          imageSrc={cropSrc.url}
+          originalFile={cropSrc.file}
+          onConfirm={(base64) => {
+            setCropSrc(null)
+            runScanFromBase64(base64)
+          }}
+          onCancel={() => {
+            URL.revokeObjectURL(cropSrc.url)
+            setCropSrc(null)
+          }}
+        />
+      )}
       <form onSubmit={form.handleSubmit(submit)}>
         <Card>
           <CardHeader>

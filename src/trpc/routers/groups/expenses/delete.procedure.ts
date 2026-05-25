@@ -1,4 +1,5 @@
 import { deleteExpense } from '@/lib/api'
+import { prisma } from '@/lib/prisma'
 import { baseProcedure } from '@/trpc/init'
 import { z } from 'zod'
 
@@ -12,5 +13,6 @@ export const deleteGroupExpenseProcedure = baseProcedure
   )
   .mutation(async ({ input: { expenseId, groupId, participantId } }) => {
     await deleteExpense(groupId, expenseId, participantId)
+    await prisma.group.update({ where: { id: groupId }, data: { updatedAt: new Date() } })
     return {}
   })

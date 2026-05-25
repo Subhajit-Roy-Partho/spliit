@@ -22,7 +22,8 @@ import {
 import { ToastAction } from '@/components/ui/toast'
 import { useToast } from '@/components/ui/use-toast'
 import { useMediaQuery } from '@/lib/hooks'
-import { ReceiptResult, compressImageToBase64, scanReceipt } from '@/lib/receipt'
+import { ReceiptCropper } from '@/components/receipt-cropper'
+import { ReceiptResult, scanReceipt } from '@/lib/receipt'
 import {
   formatCurrency,
   formatDate,
@@ -92,38 +93,40 @@ function ReceiptDialogContent() {
   const [receiptInfo, setReceiptInfo] = useState<
     (ReceiptResult & { previewUrl: string }) | null
   >(null)
+  const [cropSrc, setCropSrc] = useState<{ url: string; file: File } | null>(null)
   const { toast } = useToast()
   const router = useRouter()
 
   const galleryRef = useRef<HTMLInputElement>(null)
   const cameraRef = useRef<HTMLInputElement>(null)
 
-  const handleFile = async (file: File) => {
-    const previewUrl = URL.createObjectURL(file)
-    const run = async () => {
-      try {
-        setPending(true)
-        const base64 = await compressImageToBase64(file)
-        const result = await scanReceipt(base64, modelMode)
-        setReceiptInfo({ ...result, previewUrl })
-      } catch (err) {
-        console.error(err)
-        URL.revokeObjectURL(previewUrl)
-        toast({
-          title: t('ErrorToast.title'),
-          description: t('ErrorToast.description'),
-          variant: 'destructive',
-          action: (
-            <ToastAction altText={t('ErrorToast.retry')} onClick={() => run()}>
-              {t('ErrorToast.retry')}
-            </ToastAction>
-          ),
-        })
-      } finally {
-        setPending(false)
-      }
+  const runScan = async (base64: string, previewUrl: string) => {
+    try {
+      setPending(true)
+      const result = await scanReceipt(base64, modelMode)
+      setReceiptInfo({ ...result, previewUrl })
+    } catch (err) {
+      console.error(err)
+      toast({
+        title: t('ErrorToast.title'),
+        description: t('ErrorToast.description'),
+        variant: 'destructive',
+        action: (
+          <ToastAction
+            altText={t('ErrorToast.retry')}
+            onClick={() => runScan(base64, previewUrl)}
+          >
+            {t('ErrorToast.retry')}
+          </ToastAction>
+        ),
+      })
+    } finally {
+      setPending(false)
     }
-    run()
+  }
+
+  const handleFile = (file: File) => {
+    setCropSrc({ url: URL.createObjectURL(file), file })
   }
 
   const onInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -139,6 +142,21 @@ function ReceiptDialogContent() {
 
   return (
     <div className="prose prose-sm dark:prose-invert">
+      {cropSrc && (
+        <ReceiptCropper
+          imageSrc={cropSrc.url}
+          originalFile={cropSrc.file}
+          onConfirm={(base64) => {
+            const preview = cropSrc.url
+            setCropSrc(null)
+            runScan(base64, preview)
+          }}
+          onCancel={() => {
+            URL.revokeObjectURL(cropSrc.url)
+            setCropSrc(null)
+          }}
+        />
+      )}
       <p>{t('Dialog.body')}</p>
       <div>
         {/* Model selector */}
