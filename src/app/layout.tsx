@@ -1,17 +1,10 @@
-import { auth } from '@/auth'
 import { ApplePwaSplash } from '@/app/apple-pwa-splash'
+import { HeaderAuth } from '@/components/header-auth'
 import { LocaleSwitcher } from '@/components/locale-switcher'
 import { ProgressBar } from '@/components/progress-bar'
 import { ThemeProvider } from '@/components/theme-provider'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { Button } from '@/components/ui/button'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
 import { Toaster } from '@/components/ui/toaster'
 import { env } from '@/lib/env'
 import { TRPCProvider } from '@/trpc/client'
@@ -73,67 +66,8 @@ export const viewport: Viewport = {
   themeColor: '#047857',
 }
 
-function UserMenu({
-  user,
-}: {
-  user: { name?: string | null; email?: string | null; image?: string | null }
-}) {
-  const initials = user.name
-    ? user.name
-        .split(' ')
-        .map((n) => n[0])
-        .join('')
-        .toUpperCase()
-        .slice(0, 2)
-    : user.email?.[0]?.toUpperCase() ?? '?'
-
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="gap-2 -my-3 text-primary"
-        >
-          <span className="w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-semibold">
-            {user.image ? (
-              <Image
-                src={user.image}
-                alt={user.name ?? ''}
-                width={28}
-                height={28}
-                className="rounded-full"
-              />
-            ) : (
-              initials
-            )}
-          </span>
-          <span className="hidden sm:inline max-w-[120px] truncate text-sm">
-            {user.name ?? user.email}
-          </span>
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-48">
-        <div className="px-2 py-1.5">
-          <p className="text-sm font-medium truncate">{user.name ?? 'User'}</p>
-          <p className="text-xs text-muted-foreground truncate">{user.email}</p>
-        </div>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem asChild>
-          <Link href="/groups">My Groups</Link>
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem asChild>
-          <Link href="/auth/signout">Sign out</Link>
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  )
-}
-
-async function Content({ children }: { children: React.ReactNode }) {
+function Content({ children }: { children: React.ReactNode }) {
   const t = useTranslations()
-  const session = await auth()
 
   return (
     <TRPCProvider>
@@ -172,13 +106,7 @@ async function Content({ children }: { children: React.ReactNode }) {
               <ThemeToggle />
             </li>
             <li className="ml-1">
-              {session?.user ? (
-                <UserMenu user={session.user} />
-              ) : (
-                <Button variant="ghost" size="sm" asChild className="-my-3 text-primary">
-                  <Link href="/auth/signin">Sign in</Link>
-                </Button>
-              )}
+              <HeaderAuth />
             </li>
           </ul>
         </div>
