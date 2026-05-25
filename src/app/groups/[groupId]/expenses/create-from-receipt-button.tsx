@@ -33,13 +33,15 @@ import {
   getCurrencyFromGroup,
 } from '@/lib/utils'
 import { trpc } from '@/trpc/client'
-import { ChevronRight, FileQuestion, Loader2, Receipt } from 'lucide-react'
+import { ChevronRight, FileQuestion, Loader2, Receipt, Zap, ScanSearch } from 'lucide-react'
 import { useLocale, useTranslations } from 'next-intl'
 import { getImageData, usePresignedUpload } from 'next-s3-upload'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { PropsWithChildren, ReactNode, useState } from 'react'
 import { useCurrentGroup } from '../current-group-context'
+
+type ModelMode = 'fast' | 'accurate'
 
 const MAX_FILE_SIZE = 5 * 1024 ** 2
 
@@ -85,6 +87,7 @@ function ReceiptDialogContent() {
   const locale = useLocale()
   const t = useTranslations('CreateFromReceipt')
   const [pending, setPending] = useState(false)
+  const [modelMode, setModelMode] = useState<ModelMode>('fast')
   const { uploadToS3, FileInput, openFileDialog } = usePresignedUpload()
   const { toast } = useToast()
   const router = useRouter()
@@ -121,7 +124,7 @@ function ReceiptDialogContent() {
           fetch('/api/receipt-parse', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ imageUrl: url }),
+            body: JSON.stringify({ imageUrl: url, model: modelMode }),
           }).then((r) => r.json() as Promise<{ items?: { name: string; amount: number }[] }>),
         ])
         const { width, height } = await getImageData(file)
@@ -163,6 +166,32 @@ function ReceiptDialogContent() {
     <div className="prose prose-sm dark:prose-invert">
       <p>{t('Dialog.body')}</p>
       <div>
+        <div className="flex gap-2 mb-3">
+          <button
+            type="button"
+            onClick={() => setModelMode('fast')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+              modelMode === 'fast'
+                ? 'bg-primary text-primary-foreground border-primary'
+                : 'border-border text-muted-foreground hover:border-primary'
+            }`}
+          >
+            <Zap className="w-3 h-3" />
+            Fast
+          </button>
+          <button
+            type="button"
+            onClick={() => setModelMode('accurate')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+              modelMode === 'accurate'
+                ? 'bg-primary text-primary-foreground border-primary'
+                : 'border-border text-muted-foreground hover:border-primary'
+            }`}
+          >
+            <ScanSearch className="w-3 h-3" />
+            Accurate
+          </button>
+        </div>
         <FileInput onChange={handleFileChange} accept="image/jpeg,image/png" />
         <div className="grid gap-x-4 gap-y-2 grid-cols-3">
           <Button

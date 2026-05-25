@@ -100,6 +100,16 @@ function Content({ children }: { children: React.ReactNode }) {
               </Button>
             </li>
             <li>
+              <Button
+                variant="ghost"
+                size="sm"
+                asChild
+                className="-my-3 text-primary"
+              >
+                <Link href="/docs">Docs</Link>
+              </Button>
+            </li>
+            <li>
               <LocaleSwitcher />
             </li>
             <li>
@@ -127,26 +137,9 @@ function Content({ children }: { children: React.ReactNode }) {
               />
             </Link>
           </div>
-          <div className="flex flex-col space-y a--no-underline-text-white">
-            <span>{t('Footer.madeIn')}</span>
-            <span>
-              {t.rich('Footer.builtBy', {
-                author: (txt) => (
-                  <a href="https://scastiel.dev" target="_blank" rel="noopener">
-                    {txt}
-                  </a>
-                ),
-                source: (txt) => (
-                  <a
-                    href="https://github.com/spliit-app/spliit/graphs/contributors"
-                    target="_blank"
-                    rel="noopener"
-                  >
-                    {txt}
-                  </a>
-                ),
-              })}
-            </span>
+          <div className="flex flex-col space-y text-muted-foreground text-xs">
+            <span>Built by <a href="https://subhajitroy.dev" target="_blank" rel="noopener">Subhajit Roy</a></span>
+            <span>Forked from <a href="https://github.com/spliit-app/spliit" target="_blank" rel="noopener">Spliit</a> by Sebastien Castiel</span>
           </div>
         </div>
       </footer>

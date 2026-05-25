@@ -26,7 +26,8 @@
 - **Expense splitting** — Evenly, by shares, by percentage, or by exact amounts
 - **Balances** — See who owes whom at a glance
 - **Reimbursements** — Record payments to settle balances
-- **Receipt scanning** — Extract expense details from a photo (requires OpenAI API key)
+- **Itemized bill** — List individual line items with per-participant exclusions; auto-computes shares
+- **AI Receipt scanning** — Upload a photo of a receipt; AI extracts title, date, category, total, and line items (Fast or Accurate mode)
 - **Recurring expenses** — Daily, weekly, or monthly recurrence
 - **Export** — Download expenses as CSV or JSON
 - **PWA** — Works offline and installable on mobile
@@ -119,6 +120,9 @@ Required environment variables on Vercel:
 | `AUTH_URL` | Your production URL, e.g. `https://dhar.vercel.app` |
 | `GOOGLE_CLIENT_ID` | From Google Cloud Console |
 | `GOOGLE_CLIENT_SECRET` | From Google Cloud Console |
+| `NANOGPT_API_KEY` | NanoGPT API key for receipt scanning |
+| `NANOGPT_BASE_URL` | NanoGPT base URL (`https://nano-gpt.com/api/v1`) |
+| `NANOGPT_MODEL` | Default model override (optional) |
 
 ## Development Commands
 
@@ -139,4 +143,6 @@ npx prisma generate          # Regenerate client after schema change
 
 ## Credits
 
-This project is a fork of [Spliit](https://github.com/spliit-app/spliit), originally created by [Sebastien Castiel](https://scastiel.dev) and [contributors](https://github.com/spliit-app/spliit/graphs/contributors). The original project is licensed under MIT. This fork adds user authentication, account linking, and a personalised "My Groups" dashboard.
+This project is a fork of [Spliit](https://github.com/spliit-app/spliit), originally created by [Sebastien Castiel](https://scastiel.dev) and [contributors](https://github.com/spliit-app/spliit/graphs/contributors). The original project is licensed under MIT.
+
+Dhar is developed and maintained by [Subhajit Roy](https://subhajitroy.dev). New features include: user authentication, My Groups dashboard, participant claiming, itemized billing, and AI receipt scanning with NanoGPT.

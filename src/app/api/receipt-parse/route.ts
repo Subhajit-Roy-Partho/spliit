@@ -1,11 +1,24 @@
+import { auth } from '@/auth'
 import { getCategories } from '@/lib/api'
 import { formatCategoryForAIPrompt } from '@/lib/utils'
 import { NextRequest, NextResponse } from 'next/server'
 import OpenAI from 'openai'
 
+const MODELS = {
+  accurate: 'moonshotai/kimi-latest',
+  fast: 'alibaba/qwen3.6-27b',
+} as const
+
+type ModelKey = keyof typeof MODELS
+
 export async function POST(req: NextRequest) {
-  const body = await req.json() as { imageUrl?: string }
-  const { imageUrl } = body
+  const session = await auth()
+  if (!session?.user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  const body = (await req.json()) as { imageUrl?: string; model?: string }
+  const { imageUrl, model: modelKey } = body
   if (!imageUrl) {
     return NextResponse.json({ error: 'imageUrl required' }, { status: 400 })
   }
@@ -20,12 +33,15 @@ export async function POST(req: NextRequest) {
     )
   }
 
+  const model =
+    MODELS[(modelKey as ModelKey) in MODELS ? (modelKey as ModelKey) : 'fast']
+
   const client = new OpenAI({ apiKey, baseURL })
   const categories = await getCategories()
 
   try {
     const completion = await client.chat.completions.create({
-      model: process.env.NANOGPT_MODEL ?? 'gpt-4o',
+      model,
       messages: [
         {
           role: 'user',
@@ -38,7 +54,7 @@ Return ONLY valid JSON with no markdown, no code blocks, no extra text.
 
 Schema:
 {
-  "title": "short expense title (e.g. 'Dinner at Joe's', 'Groceries', 'Amazon order')",
+  "title": "short expense title (e.g. 'Dinner at Joe\\'s', 'Groceries', 'Amazon order')",
   "date": "YYYY-MM-DD or null",
   "categoryId": "best matching category ID from list below, or null",
   "total": <number: grand total as decimal, e.g. 45.50>,
@@ -66,7 +82,9 @@ Rules:
     })
 
     const raw = completion.choices.at(0)?.message.content ?? '{}'
-    const parsed = JSON.parse(raw.replace(/```json|```/g, '').trim()) as Record<string, unknown>
+    const parsed = JSON.parse(
+      raw.replace(/```json|```/g, '').trim(),
+    ) as Record<string, unknown>
 
     return NextResponse.json({
       title: typeof parsed.title === 'string' ? parsed.title : null,

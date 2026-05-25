@@ -413,3 +413,118 @@ Root cause: `groups.create` never created a `GroupMember`. Fixed by:
 1. Adding `activeParticipantName?: string` to `groups.create` input
 2. Having `GroupForm` pass the selected active participant name on submission
 3. Having `create-group.tsx` forward the value to the mutation
+
+---
+
+## 16. Feature: Itemized Bill
+
+### Schema changes
+
+`Expense.items Json?` — stores an array of `ExpenseItem` objects:
+
+```typescript
+// src/lib/schemas.ts
+export const expenseItemSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  amount: z.number().min(0),
+  excludedParticipants: z.array(z.string()),   // participant IDs to exclude
+})
+export type ExpenseItem = z.infer<typeof expenseItemSchema>
+```
+
+Items are stored as JSONB in Postgres. Prisma casting:
+- **Set**: `items: values.items as Prisma.InputJsonValue`
+- **Clear**: `items: Prisma.DbNull`
+
+### `computePaidForFromItems` (`src/components/itemized-bill.tsx`)
+
+Distributes each item's cost among non-excluded participants proportionally, rounds to `currency.decimal_digits`, and returns a `paidFor` array compatible with `splitMode: BY_AMOUNT`.
+
+```typescript
+computePaidForFromItems(items, participants, currency)
+// → [{ participant: id, shares: "12.50" }, ...]
+```
+
+### Expense form integration
+
+When itemized mode is active (`isItemizedMode === true`):
+- The amount field is `readOnly` (computed from sum of items)
+- `splitMode` is forced to `BY_AMOUNT`
+- A `useEffect` watches `watchedItems` and syncs total amount + paidFor
+- Items are pre-filled from `localStorage['pendingReceiptItems']` on new expenses coming from receipt scanning
+
+### Migration
+
+`prisma/migrations/20260525071522_add_expense_items/migration.sql`:
+```sql
+ALTER TABLE "Expense" ADD COLUMN "items" JSONB;
+```
+
+---
+
+## 17. Feature: AI Receipt Scanning
+
+### Architecture
+
+Two-tier model selection exposed to the user:
+- **Fast**: `alibaba/qwen3.6-27b`
+- **Accurate**: `moonshotai/kimi-latest`
+
+Both are accessed via the NanoGPT OpenAI-compatible proxy.
+
+### Route: `POST /api/receipt-parse`
+
+File: `src/app/api/receipt-parse/route.ts`
+
+**Security**: Requires authenticated session — returns 401 if `session?.user` is falsy.
+
+Input: `{ imageUrl: string, model?: 'fast' | 'accurate' }`
+
+Output:
+```json
+{
+  "title": "...",
+  "date": "YYYY-MM-DD",
+  "categoryId": "...",
+  "total": 45.50,
+  "items": [{ "name": "...", "amount": 12.50 }]
+}
+```
+
+### Client flow (`create-from-receipt-button.tsx`)
+
+1. User selects Fast or Accurate mode (pill buttons)
+2. Uploads image → uploaded to S3 via `next-s3-upload`
+3. Two parallel calls:
+   - `extractExpenseInformationFromImage(url)` — server action (basic extraction via NanoGPT/OpenAI)
+   - `POST /api/receipt-parse` with `{ imageUrl, model }` — itemized extraction
+4. Results merged: title/date/categoryId from whichever succeeds first; items from `/api/receipt-parse`
+5. If items found, stored in `localStorage['pendingReceiptItems']`
+6. Navigates to `/groups/{id}/expenses/create?amount=...&categoryId=...&date=...&title=...`
+
+### Environment variables
+
+| Variable | Value |
+|---|---|
+| `NANOGPT_API_KEY` | `sk-nano-...` (rotate regularly) |
+| `NANOGPT_BASE_URL` | `https://nano-gpt.com/api/v1` |
+| `NANOGPT_MODEL` | Optional override for the server action default |
+
+---
+
+## 18. Environment Variables (updated)
+
+| Variable | Required | Where used |
+|---|---|---|
+| `POSTGRES_PRISMA_URL` | Yes | Prisma (pooled) |
+| `POSTGRES_URL_NON_POOLING` | Yes | Prisma (direct for migrations) |
+| `AUTH_SECRET` | Yes | Auth.js (signs sessions) |
+| `AUTH_URL` | Yes (prod) | Auth.js redirect base URL |
+| `GOOGLE_CLIENT_ID` | Yes | Google OAuth |
+| `GOOGLE_CLIENT_SECRET` | Yes | Google OAuth |
+| `NANOGPT_API_KEY` | Receipt scanning | NanoGPT API key |
+| `NANOGPT_BASE_URL` | Receipt scanning | `https://nano-gpt.com/api/v1` |
+| `NANOGPT_MODEL` | No | Override default model for server action |
+| `NEXT_PUBLIC_BASE_URL` | No | OG meta tags |
+| `S3_UPLOAD_KEY/SECRET/BUCKET/REGION` | If docs enabled | Expense document uploads |
