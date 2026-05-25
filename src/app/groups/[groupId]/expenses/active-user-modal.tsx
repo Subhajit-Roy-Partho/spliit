@@ -22,6 +22,7 @@ import { useMediaQuery } from '@/lib/hooks'
 import { cn } from '@/lib/utils'
 import { trpc } from '@/trpc/client'
 import { AppRouterOutput } from '@/trpc/routers/_app'
+import { useSession } from 'next-auth/react'
 import { useTranslations } from 'next-intl'
 import { ComponentProps, useEffect, useState } from 'react'
 
@@ -30,22 +31,35 @@ export function ActiveUserModal({ groupId }: { groupId: string }) {
   const [open, setOpen] = useState(false)
   const isDesktop = useMediaQuery('(min-width: 768px)')
   const { data: groupData } = trpc.groups.get.useQuery({ groupId })
+  const { data: session, status } = useSession()
+  const { data: memberData } = trpc.groups.members.getForGroup.useQuery(
+    { groupId },
+    { enabled: status === 'authenticated' },
+  )
 
   const group = groupData?.group
 
   useEffect(() => {
     if (!group) return
 
+    // If the user is authenticated and has a claimed participant, auto-set and skip modal
+    if (status === 'authenticated' && memberData?.member) {
+      localStorage.setItem(`${group.id}-activeUser`, memberData.member.participantId)
+      return
+    }
+
+    // Only show modal for unauthenticated users (authenticated users use ClaimParticipantModal)
+    if (status === 'authenticated') return
+
     const tempUser = localStorage.getItem(`newGroup-activeUser`)
     const activeUser = localStorage.getItem(`${group.id}-activeUser`)
     if (!tempUser && !activeUser) {
       setOpen(true)
     }
-  }, [group])
+  }, [group, status, memberData])
 
   function updateOpen(open: boolean) {
     if (!group) return
-
     if (!open && !localStorage.getItem(`${group.id}-activeUser`)) {
       localStorage.setItem(`${group.id}-activeUser`, 'None')
     }
@@ -109,7 +123,6 @@ function ActiveUserForm({
       className={cn('grid items-start gap-4', className)}
       onSubmit={(event) => {
         if (!group) return
-
         event.preventDefault()
         localStorage.setItem(`${group.id}-activeUser`, selected)
         close()

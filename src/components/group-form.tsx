@@ -1,3 +1,4 @@
+import { ParticipantInput } from '@/components/participant-input'
 import { SubmitButton } from '@/components/submit-button'
 import { Button } from '@/components/ui/button'
 import {
@@ -252,9 +253,9 @@ export function GroupForm({
                         </FormLabel>
                         <FormControl>
                           <div className="flex gap-2">
-                            <Input
-                              className="text-base"
-                              {...field}
+                            <ParticipantInput
+                              value={field.value}
+                              onChange={field.onChange}
                               placeholder={t('Participants.new')}
                             />
                             {item.id &&

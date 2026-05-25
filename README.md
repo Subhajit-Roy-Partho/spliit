@@ -1,127 +1,142 @@
-[<img alt="Spliit" height="60" src="https://github.com/spliit-app/spliit/blob/main/public/logo-with-text.png?raw=true" />](https://spliit.app)
+# Dhar — Shared Expense Tracker
 
-Spliit is a free and open source alternative to Splitwise. You can either use the official instance at [Spliit.app](https://spliit.app), or deploy your own instance:
+<p align="center">
+  <img src="public/logo-with-text.png" alt="Dhar" height="60" />
+</p>
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fspliit-app%2Fspliit&project-name=my-spliit-instance&repository-name=my-spliit-instance&stores=%5B%7B%22type%22%3A%22postgres%22%7D%5D&)
+<p align="center">
+  A free, open-source, self-hostable expense-sharing app — a spiritual successor to Splitwise.<br/>
+  Create groups, add participants, split bills, and track who owes what.
+</p>
+
+<p align="center">
+  <a href="https://dhar.vercel.app"><strong>🌐 Live App</strong></a> ·
+  <a href="#getting-started"><strong>Run locally</strong></a> ·
+  <a href="CHANGELOG.md"><strong>Changelog</strong></a>
+</p>
+
+---
 
 ## Features
 
-- [x] Create a group and share it with friends
-- [x] Create expenses with description
-- [x] Display group balances
-- [x] Create reimbursement expenses
-- [x] Progressive Web App
-- [x] Select all/no participant for expenses
-- [x] Split expenses unevenly [(#6)](https://github.com/spliit-app/spliit/issues/6)
-- [x] Mark a group as favorite [(#29)](https://github.com/spliit-app/spliit/issues/29)
-- [x] Tell the application who you are when opening a group [(#7)](https://github.com/spliit-app/spliit/issues/7)
-- [x] Assign a category to expenses [(#35)](https://github.com/spliit-app/spliit/issues/35)
-- [x] Search for expenses in a group [(#51)](https://github.com/spliit-app/spliit/issues/51)
-- [x] Upload and attach images to expenses [(#63)](https://github.com/spliit-app/spliit/issues/63)
-- [x] Create expense by scanning a receipt [(#23)](https://github.com/spliit-app/spliit/issues/23)
-
-### Possible incoming features
-
-- [ ] Ability to create recurring expenses [(#5)](https://github.com/spliit-app/spliit/issues/5)
-- [ ] Import expenses from Splitwise [(#22)](https://github.com/spliit-app/spliit/issues/22)
+- **Authentication** — Sign up / sign in with email + password or Google OAuth
+- **Groups** — Create shared expense groups and invite friends via link
+- **Participant claiming** — When a friend opens your group link, they can link their account to their participant entry
+- **My Groups** — Dashboard listing all groups you're a participant in
+- **Expense splitting** — Evenly, by shares, by percentage, or by exact amounts
+- **Balances** — See who owes whom at a glance
+- **Reimbursements** — Record payments to settle balances
+- **Receipt scanning** — Extract expense details from a photo (requires OpenAI API key)
+- **Recurring expenses** — Daily, weekly, or monthly recurrence
+- **Export** — Download expenses as CSV or JSON
+- **PWA** — Works offline and installable on mobile
+- **i18n** — Available in 20+ languages
 
 ## Stack
 
-- [Next.js](https://nextjs.org/) for the web application
-- [TailwindCSS](https://tailwindcss.com/) for the styling
-- [shadcn/UI](https://ui.shadcn.com/) for the UI components
-- [Prisma](https://prisma.io) to access the database
-- [Vercel](https://vercel.com/) for hosting (application and database)
+| Layer | Technology |
+|---|---|
+| Framework | [Next.js 16](https://nextjs.org/) (App Router) |
+| Auth | [Auth.js v5](https://authjs.dev/) (Credentials + Google OAuth) |
+| Database | PostgreSQL via [Prisma](https://prisma.io) |
+| API | [tRPC](https://trpc.io) |
+| UI | [shadcn/ui](https://ui.shadcn.com/) + [Tailwind CSS](https://tailwindcss.com/) |
+| Hosting | [Vercel](https://vercel.com/) |
 
-## Contribute
+## Getting Started
 
-The project is open to contributions. Feel free to open an issue or even a pull-request! 
-Join the discussion in [the Spliit Discord server](https://discord.gg/YSyVXbwvSY).
+### Prerequisites
 
-If you want to contribute financially and help us keep the application free and without ads, you can also:
+- Node.js ≥ 20
+- PostgreSQL (or use the Docker helper below)
 
-- 💜 [Sponsor me (Sebastien)](https://github.com/sponsors/scastiel), or
-- 💙 [Make a small one-time donation](https://donate.stripe.com/28o3eh96G7hH8k89Ba).
+### 1. Clone and install
 
-### Translation
-
-The project's translations are managed using [our Weblate project](https://hosted.weblate.org/projects/spliit/spliit/). 
-You can easily add missing translations to the project or even add a new language!
-Here is the current state of translation:
-
-<a href="https://hosted.weblate.org/engage/spliit/">
-<img src="https://hosted.weblate.org/widget/spliit/spliit/multi-auto.svg" alt="Translation status" />
-</a>
-
-## Run locally
-
-1. Clone the repository (or fork it if you intend to contribute)
-2. Start a PostgreSQL server. You can run `./scripts/start-local-db.sh` if you don’t have a server already.
-3. Copy the file `.env.example` as `.env`
-4. Run `npm install` to install dependencies. This will also apply database migrations and update Prisma Client.
-5. Run `npm run dev` to start the development server
-
-## Run in a container
-
-1. Run `npm run build-image` to build the docker image from the Dockerfile
-2. Copy the file `container.env.example` as `container.env`
-3. Run `npm run start-container` to start the postgres and the spliit2 containers
-4. You can access the app by browsing to http://localhost:3000
-
-## Health check
-
-The application has a health check endpoint that can be used to check if the application is running and if the database is accessible.
-
-- `GET /api/health/readiness` or `GET /api/health` - Check if the application is ready to serve requests, including database connectivity.
-- `GET /api/health/liveness` - Check if the application is running, but not necessarily ready to serve requests.
-
-## Opt-in features
-
-### Expense documents
-
-Spliit offers users to upload images (to an AWS S3 bucket) and attach them to expenses. To enable this feature:
-
-- Follow the instructions in the _S3 bucket_ and _IAM user_ sections of [next-s3-upload](https://next-s3-upload.codingvalue.com/setup#s3-bucket) to create and set up an S3 bucket where images will be stored.
-- Update your environments variables with appropriate values:
-
-```.env
-NEXT_PUBLIC_ENABLE_EXPENSE_DOCUMENTS=true
-S3_UPLOAD_KEY=AAAAAAAAAAAAAAAAAAAA
-S3_UPLOAD_SECRET=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
-S3_UPLOAD_BUCKET=name-of-s3-bucket
-S3_UPLOAD_REGION=us-east-1
+```bash
+git clone https://github.com/Subhajit-Roy-Partho/spliit.git
+cd spliit
+npm install
 ```
 
-You can also use other S3 providers by providing a custom endpoint:
+### 2. Configure environment
 
-```.env
-S3_UPLOAD_ENDPOINT=http://localhost:9000
+```bash
+cp .env.example .env
 ```
 
-### Create expense from receipt
+Fill in `.env`:
 
-You can offer users to create expense by uploading a receipt. This feature relies on [OpenAI GPT-4 with Vision](https://platform.openai.com/docs/guides/vision) and a public S3 storage endpoint.
+```env
+# Database
+POSTGRES_PRISMA_URL=postgresql://postgres:password@localhost/spliit
+POSTGRES_URL_NON_POOLING=postgresql://postgres:password@localhost/spliit
 
-To enable the feature:
+# Auth.js — generate with: openssl rand -base64 32
+AUTH_SECRET=your-secret-here
+AUTH_URL=http://localhost:3000
 
-- You must enable expense documents feature as well (see section above). That might change in the future, but for now we need to store images to make receipt scanning work.
-- Subscribe to OpenAI API and get access to GPT 4 with Vision (you might need to buy credits in advance).
-- Update your environment variables with appropriate values:
-
-```.env
-NEXT_PUBLIC_ENABLE_RECEIPT_EXTRACT=true
-OPENAI_API_KEY=XXXXXXXXXXXXXXXXXXXXXXXXXXXX
+# Google OAuth (https://console.cloud.google.com/)
+GOOGLE_CLIENT_ID=your-client-id
+GOOGLE_CLIENT_SECRET=your-client-secret
 ```
 
-### Deduce category from title
+### 3. Start a local database (optional)
 
-You can offer users to automatically deduce the expense category from the title. Since this feature relies on a OpenAI subscription, follow the signup instructions above and configure the following environment variables:
-
-```.env
-NEXT_PUBLIC_ENABLE_CATEGORY_EXTRACT=true
-OPENAI_API_KEY=XXXXXXXXXXXXXXXXXXXXXXXXXXXX
+```bash
+./scripts/start-local-db.sh
 ```
 
-## License
+### 4. Run migrations and start
 
-MIT, see [LICENSE](./LICENSE).
+```bash
+npm run dev
+```
+
+`postinstall` automatically runs `prisma migrate deploy && prisma generate`.
+
+Open [http://localhost:3000](http://localhost:3000).
+
+## Google OAuth Setup
+
+In [Google Cloud Console](https://console.cloud.google.com/) → APIs & Services → Credentials → your OAuth 2.0 client:
+
+| Field | Value |
+|---|---|
+| Authorised JavaScript origins | `http://localhost:3000`, `https://dhar.vercel.app` |
+| Authorised redirect URIs | `http://localhost:3000/api/auth/callback/google`, `https://dhar.vercel.app/api/auth/callback/google` |
+
+## Deployment on Vercel
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FSubhajit-Roy-Partho%2Fspliit&stores=%5B%7B%22type%22%3A%22postgres%22%7D%5D)
+
+Required environment variables on Vercel:
+
+| Variable | Description |
+|---|---|
+| `POSTGRES_PRISMA_URL` | Pooled connection string |
+| `POSTGRES_URL_NON_POOLING` | Direct connection string |
+| `AUTH_SECRET` | Random 32-byte base64 string (`openssl rand -base64 32`) |
+| `AUTH_URL` | Your production URL, e.g. `https://dhar.vercel.app` |
+| `GOOGLE_CLIENT_ID` | From Google Cloud Console |
+| `GOOGLE_CLIENT_SECRET` | From Google Cloud Console |
+
+## Development Commands
+
+```bash
+npm run dev          # Start dev server
+npm run build        # Production build
+npm run lint         # ESLint
+npm run check-types  # TypeScript type check
+npm test             # Jest unit tests
+npm run prettier     # Format src/
+
+# Prisma
+npx prisma studio            # Open DB GUI
+npx prisma migrate dev       # Create + apply new migration
+npx prisma migrate deploy    # Apply pending migrations (production)
+npx prisma generate          # Regenerate client after schema change
+```
+
+## Credits
+
+This project is a fork of [Spliit](https://github.com/spliit-app/spliit), originally created by [Sebastien Castiel](https://scastiel.dev) and [contributors](https://github.com/spliit-app/spliit/graphs/contributors). The original project is licensed under MIT. This fork adds user authentication, account linking, and a personalised "My Groups" dashboard.
