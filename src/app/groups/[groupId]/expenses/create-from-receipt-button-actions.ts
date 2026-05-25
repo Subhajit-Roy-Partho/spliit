@@ -18,7 +18,7 @@ export async function extractExpenseInformationFromImage(imageUrl: string) {
   'use server'
   const categories = await getCategories()
   const client = getClient()
-  const model = process.env.NANOGPT_MODEL ?? 'gpt-4o'
+  const model = process.env.NANOGPT_MODEL_ACCURATE ?? 'moonshotai/kimi-latest'
 
   const completion = await client.chat.completions.create({
     model,

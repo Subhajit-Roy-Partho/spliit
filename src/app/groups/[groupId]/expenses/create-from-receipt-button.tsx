@@ -87,7 +87,7 @@ function ReceiptDialogContent() {
   const locale = useLocale()
   const t = useTranslations('CreateFromReceipt')
   const [pending, setPending] = useState(false)
-  const [modelMode, setModelMode] = useState<ModelMode>('fast')
+  const [modelMode, setModelMode] = useState<ModelMode>('accurate')
   const { uploadToS3, FileInput, openFileDialog } = usePresignedUpload()
   const { toast } = useToast()
   const router = useRouter()

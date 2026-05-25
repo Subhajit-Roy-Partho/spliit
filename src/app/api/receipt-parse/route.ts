@@ -5,9 +5,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import OpenAI from 'openai'
 
 const MODELS = {
-  accurate: 'moonshotai/kimi-latest',
-  fast: 'alibaba/qwen3.6-27b',
-} as const
+  accurate: process.env.NANOGPT_MODEL_ACCURATE ?? 'moonshotai/kimi-latest',
+  fast: process.env.NANOGPT_MODEL_FAST ?? 'alibaba/qwen3.6-27b',
+}
 
 type ModelKey = keyof typeof MODELS
 
@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
   }
 
   const model =
-    MODELS[(modelKey as ModelKey) in MODELS ? (modelKey as ModelKey) : 'fast']
+    MODELS[(modelKey as ModelKey) in MODELS ? (modelKey as ModelKey) : 'accurate']
 
   const client = new OpenAI({ apiKey, baseURL })
   const categories = await getCategories()
