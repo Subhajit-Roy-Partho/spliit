@@ -78,7 +78,10 @@ Rules:
 Receipt format quirks to handle:
 - Costco / warehouse clubs: items sometimes show two prices — a shelf price and an instant savings line like "-A $X.XX". The real price is shelf price minus savings. Only include the net item price in amount.
 - Some receipts show a negative line (e.g. "-2.00") as a discount/coupon — subtract it from the item above it, do not include it as a separate item.
-- Tax lines, tips, service charges, and subtotals should NOT appear in items[].
+- Tax (sales tax, GST, HST, VAT, etc.) — include as a separate item named "Tax" with its amount. It will be split equally.
+- Tip / gratuity — include as a separate item named "Tip" with its amount. It will be split equally.
+- Service charge — include as a separate item named "Service Charge" with its amount. It will be split equally.
+- Subtotals should NOT appear in items[].
 - If an item quantity > 1 (e.g. "2 @ 3.99"), amount should be the total for that line (2 × 3.99 = 7.98).`,
             },
             {
