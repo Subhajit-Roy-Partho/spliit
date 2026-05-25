@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
   const model =
     MODELS[(modelKey as ModelKey) in MODELS ? (modelKey as ModelKey) : 'accurate']
 
-  const client = new OpenAI({ apiKey, baseURL })
+  const client = new OpenAI({ apiKey, baseURL, timeout: 55_000 })
   const categories = await getCategories()
 
   try {
@@ -123,6 +123,14 @@ Receipt format quirks to handle:
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
     console.error('[receipt-parse]', message)
-    return NextResponse.json({ error: `Extraction failed: ${message}` }, { status: 500 })
+    const isTimeout = message.toLowerCase().includes('timeout') || message.includes('ETIMEDOUT')
+    return NextResponse.json(
+      {
+        error: isTimeout
+          ? 'The accurate model timed out. Try Fast mode instead.'
+          : `Extraction failed: ${message}`,
+      },
+      { status: isTimeout ? 504 : 500 },
+    )
   }
 }
