@@ -49,6 +49,7 @@ export type Props = {
   onSubmit: (
     groupFormValues: GroupFormValues,
     participantId?: string,
+    activeParticipantName?: string,
   ) => Promise<void>
   protectedParticipantIds?: string[]
 }
@@ -117,11 +118,15 @@ export function GroupForm({
     <Form {...form}>
       <form
         onSubmit={form.handleSubmit(async (values) => {
-          await onSubmit(
-            values,
-            group?.participants.find((p) => p.name === activeUser)?.id ??
-              undefined,
-          )
+          const existingParticipantId =
+            group?.participants.find((p) => p.name === activeUser)?.id
+          // For new groups, participants have no IDs yet — pass the name instead
+          const noneLabel = t('Settings.ActiveUserField.none')
+          const activeParticipantName =
+            !group && activeUser && activeUser !== noneLabel
+              ? activeUser
+              : undefined
+          await onSubmit(values, existingParticipantId, activeParticipantName)
         })}
       >
         <Card className="mb-4">

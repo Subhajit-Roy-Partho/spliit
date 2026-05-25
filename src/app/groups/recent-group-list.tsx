@@ -16,6 +16,7 @@ import { useSession } from 'next-auth/react'
 import { useTranslations } from 'next-intl'
 import Link from 'next/link'
 import { PropsWithChildren, useEffect, useState } from 'react'
+import { LinkRecentGroupsBanner } from './link-recent-groups-banner'
 import { RecentGroupListCard } from './recent-group-list-card'
 
 export type RecentGroupsState =
@@ -58,7 +59,7 @@ function sortGroups({
   return { starredGroupInfo, groupInfo, archivedGroupInfo }
 }
 
-function MyGroupsList() {
+function MyGroupsList({ recentGroupIds }: { recentGroupIds: string[] }) {
   const { data, isLoading } = trpc.groups.members.listMyGroups.useQuery()
 
   if (isLoading) {
@@ -70,40 +71,44 @@ function MyGroupsList() {
     )
   }
 
-  if (!data?.groups.length) {
-    return (
-      <p className="text-sm text-muted-foreground">
-        You haven&apos;t claimed a participant in any group yet. Open a group
-        link and claim your participant to see it here.
-      </p>
-    )
-  }
+  const myGroupIds = data?.groups.map((g) => g.id) ?? []
 
   return (
-    <ul className="grid gap-2 sm:grid-cols-2">
-      {data.groups.map((group) => (
-        <li key={group.id}>
-          <Card className="hover:bg-accent transition-colors">
-            <CardContent className="p-4 flex items-center justify-between">
-              <div>
-                <Link
-                  href={`/groups/${group.id}/expenses`}
-                  className="font-medium hover:underline"
-                >
-                  {group.name}
-                </Link>
-                <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                  <Users className="w-3 h-3" />
-                  {group.participants.length} participant
-                  {group.participants.length !== 1 ? 's' : ''} · you are{' '}
-                  <span className="font-medium">{group.myParticipant.name}</span>
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </li>
-      ))}
-    </ul>
+    <>
+      <LinkRecentGroupsBanner recentGroupIds={recentGroupIds} myGroupIds={myGroupIds} />
+
+      {!data?.groups.length ? (
+        <p className="text-sm text-muted-foreground">
+          You haven&apos;t claimed a participant in any group yet. Open a group
+          link and claim your participant to see it here.
+        </p>
+      ) : (
+        <ul className="grid gap-2 sm:grid-cols-2">
+          {data.groups.map((group) => (
+            <li key={group.id}>
+              <Card className="hover:bg-accent transition-colors">
+                <CardContent className="p-4 flex items-center justify-between">
+                  <div>
+                    <Link
+                      href={`/groups/${group.id}/expenses`}
+                      className="font-medium hover:underline"
+                    >
+                      {group.name}
+                    </Link>
+                    <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                      <Users className="w-3 h-3" />
+                      {group.participants.length} participant
+                      {group.participants.length !== 1 ? 's' : ''} · you are{' '}
+                      <span className="font-medium">{group.myParticipant.name}</span>
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </li>
+          ))}
+        </ul>
+      )}
+    </>
   )
 }
 
@@ -169,7 +174,7 @@ function RecentGroupList_({
       {isAuthenticated && (
         <section className="mb-8">
           <h2 className="font-semibold text-lg mb-3">My Groups</h2>
-          <MyGroupsList />
+          <MyGroupsList recentGroupIds={groups.map((g) => g.id)} />
         </section>
       )}
 

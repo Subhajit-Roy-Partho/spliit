@@ -74,7 +74,8 @@ src/
 │   │   │   │   ├── active-user-modal.tsx    # Updated: skips for auth users
 │   │   │   │   └── page.client.tsx          # Updated: includes claim modal
 │   │   │   └── edit/edit-group.tsx
-│   │   ├── recent-group-list.tsx        # Updated: My Groups section
+│   │   ├── recent-group-list.tsx        # Updated: My Groups section + link banner
+│   ├── link-recent-groups-banner.tsx # NEW: prompt to link recent groups
 │   │   └── create/
 │   ├── layout.tsx                       # Updated: SessionProvider + auth header
 │   └── page.tsx
@@ -118,9 +119,10 @@ prisma/
 
 ### Configuration: `src/auth.ts`
 
-- Uses `@auth/prisma-adapter` with **database sessions** (not JWT)
+- Uses `@auth/prisma-adapter` with **JWT sessions** (`strategy: 'jwt'`)
+  - ⚠️ **IMPORTANT**: `strategy: 'database'` is broken in `next-auth@5.0.0-beta.31` with credentials — sessions never get written to the DB, so `/api/auth/session` always returns null. JWT strategy is the fix.
 - Two providers: **Google OAuth** and **Credentials** (email + password)
-- The `session` callback ensures `session.user.id` is populated from `user.id`
+- JWT callbacks propagate `user.id` into the token and then into `session.user.id`
 - Sign-in page: `/auth/signin`; error page: same
 
 ### Session in tRPC
@@ -290,6 +292,22 @@ User B (Soumya) opens the group link while logged in
 
 Shown on `/groups` when the user is authenticated. Queries `groups.members.listMyGroups` which fetches all `GroupMember` records for the current user, joined with `Group` and `Participant`. Each card shows the group name, participant count, and which participant the user is.
 
+### Feature: Link Recent Groups Banner
+
+`LinkRecentGroupsBanner` (`src/app/groups/link-recent-groups-banner.tsx`) shows when:
+1. User is authenticated
+2. There are recent groups in localStorage not yet linked to the user's account
+
+It computes unclaimed group IDs (`recentGroupIds - myGroupIds`), fetches their names, and shows a dismissible card. Clicking a group button opens a `ControlledClaimDialog` — the same claim form logic as `ClaimParticipantModal` but with explicit open/close control.
+
+### Feature: Auto-claim on group creation
+
+When a signed-in user creates a group and selects an active participant in the "Settings" section of the group form, a `GroupMember` record is created automatically so the group appears in "My Groups" immediately.
+
+- `groups.create` procedure accepts optional `activeParticipantName`
+- `GroupForm.onSubmit` passes `activeParticipantName` (non-null only for new groups, not edits)
+- `create-group.tsx` forwards this to `mutateAsync`
+
 ---
 
 ## 10. Environment Variables
@@ -375,6 +393,23 @@ The `postinstall` script (`prisma migrate deploy && prisma generate`) runs autom
 - [ ] Password reset flow not implemented (requires email provider)
 - [ ] `middleware.ts` exists but is minimal — no forced redirects for protected routes (auth is optional / additive)
 - [ ] `AUTH_URL` should ideally be auto-detected from `VERCEL_URL` in production (currently set manually as env var)
-- [ ] Re-claim UI in group settings (currently only accessible via the first-visit modal)
+- [ ] Re-claim UI in group settings (currently only accessible via the first-visit modal or the "Link Recent Groups" banner)
 - [ ] The `users.search` endpoint returns emails — consider hiding email if privacy is a concern
-- [ ] Google OAuth credentials in Vercel were added with real values — rotate the client secret after testing
+- [ ] Google OAuth credentials in Vercel were added with real values — **rotate the client secret** (`GOOGLE_CLIENT_SECRET`) as it was shared in chat
+
+## 15. Bug Fixes Applied
+
+### JWT Strategy (critical)
+
+`src/auth.ts` was changed from `strategy: 'database'` to `strategy: 'jwt'`. The database strategy in next-auth@5.0.0-beta.31 has a known bug where the Credentials provider never writes sessions to the DB, causing `/api/auth/session` to always return null and the header to never update. JWT strategy stores sessions in encrypted cookies and works correctly.
+
+### Header Not Updating After Sign-in
+
+`src/components/header-auth.tsx` was created as a `'use client'` component using `useSession()`. Previously the header used `await auth()` in a server component which only runs at request time and does not reactively update on client-side auth state changes. `SessionProvider` wraps the entire app in `layout.tsx`.
+
+### Groups Not Appearing in My Groups
+
+Root cause: `groups.create` never created a `GroupMember`. Fixed by:
+1. Adding `activeParticipantName?: string` to `groups.create` input
+2. Having `GroupForm` pass the selected active participant name on submission
+3. Having `create-group.tsx` forward the value to the mutation

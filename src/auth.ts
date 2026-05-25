@@ -8,7 +8,10 @@ import { prisma } from './lib/prisma'
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   adapter: PrismaAdapter(prisma),
-  session: { strategy: 'database' },
+  // JWT strategy works reliably with both credentials and OAuth in v5 beta.
+  // Database strategy + credentials has a known issue where sessions are not
+  // persisted, so /api/auth/session returns null.
+  session: { strategy: 'jwt' },
   providers: [
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID!,
@@ -38,9 +41,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     }),
   ],
   callbacks: {
-    async session({ session, user }) {
-      if (session.user) {
-        session.user.id = user.id
+    async jwt({ token, user }) {
+      if (user?.id) token.id = user.id
+      return token
+    },
+    async session({ session, token }) {
+      if (session.user && token.id) {
+        session.user.id = token.id as string
       }
       return session
     },
