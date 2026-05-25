@@ -2,24 +2,35 @@
 import { AddGroupByUrlButton } from '@/app/groups/add-group-by-url-button'
 import {
   RecentGroups,
+  archiveGroup,
   getArchivedGroups,
   getRecentGroups,
   getStarredGroups,
+  unarchiveGroup,
 } from '@/app/groups/recent-groups-helpers'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { useToast } from '@/components/ui/use-toast'
 import { getGroups } from '@/lib/api'
 import { trpc } from '@/trpc/client'
 import { AppRouterOutput } from '@/trpc/routers/_app'
-
-type MyGroupsData = AppRouterOutput['groups']['members']['listMyGroups']
-import { Loader2, Users } from 'lucide-react'
+import { Archive, ArchiveRestore, MoreHorizontal, UserMinus, Users } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 import { useSession } from 'next-auth/react'
 import { useTranslations } from 'next-intl'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { PropsWithChildren, useEffect, useState } from 'react'
 import { LinkRecentGroupsBanner } from './link-recent-groups-banner'
 import { RecentGroupListCard } from './recent-group-list-card'
+
+type MyGroupsData = AppRouterOutput['groups']['members']['listMyGroups']
 
 export type RecentGroupsState =
   | { status: 'pending' }
@@ -61,15 +72,108 @@ function sortGroups({
   return { starredGroupInfo, groupInfo, archivedGroupInfo }
 }
 
+function MyGroupCard({
+  group,
+  isArchived,
+  onArchiveToggle,
+  onRemove,
+}: {
+  group: MyGroupsData['groups'][number]
+  isArchived: boolean
+  onArchiveToggle: () => void
+  onRemove: () => void
+}) {
+  const router = useRouter()
+
+  return (
+    <li>
+      <div
+        role="link"
+        tabIndex={0}
+        className="block rounded-lg border bg-card shadow-sm hover:bg-accent transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        onClick={() => router.push(`/groups/${group.id}/expenses`)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            router.push(`/groups/${group.id}/expenses`)
+          }
+        }}
+      >
+        <CardContent className="p-4 flex items-center justify-between gap-2">
+          <div className="min-w-0">
+            <p className="font-medium truncate">{group.name}</p>
+            <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+              <Users className="w-3 h-3 shrink-0" />
+              {group.participants.length} participant
+              {group.participants.length !== 1 ? 's' : ''} · you are{' '}
+              <span className="font-medium">{group.myParticipant.name}</span>
+            </p>
+          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="shrink-0 -mr-1"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <MoreHorizontal className="w-4 h-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onArchiveToggle()
+                }}
+              >
+                {isArchived ? (
+                  <>
+                    <ArchiveRestore className="w-4 h-4 mr-2" />
+                    Unarchive
+                  </>
+                ) : (
+                  <>
+                    <Archive className="w-4 h-4 mr-2" />
+                    Archive
+                  </>
+                )}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="text-destructive focus:text-destructive"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onRemove()
+                }}
+              >
+                <UserMinus className="w-4 h-4 mr-2" />
+                Remove from My Groups
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </CardContent>
+      </div>
+    </li>
+  )
+}
+
 function MyGroupsList({
   myGroupsData,
   recentGroupIds,
   myGroupIds,
+  archivedGroups,
+  refreshArchivedGroups,
 }: {
   myGroupsData: MyGroupsData | undefined
   recentGroupIds: string[]
   myGroupIds: string[]
+  archivedGroups: string[]
+  refreshArchivedGroups: () => void
 }) {
+  const { mutateAsync: removeMember } = trpc.groups.members.remove.useMutation()
+  const utils = trpc.useUtils()
+  const { toast } = useToast()
+
   if (!myGroupsData) {
     return (
       <p className="text-sm text-muted-foreground">
@@ -78,6 +182,32 @@ function MyGroupsList({
       </p>
     )
   }
+
+  const handleRemove = async (groupId: string, groupName: string) => {
+    await removeMember({ groupId })
+    await utils.groups.members.listMyGroups.invalidate()
+    toast({
+      title: 'Removed',
+      description: `${groupName} removed from My Groups. You can still access it via Recent Groups.`,
+    })
+  }
+
+  const handleArchiveToggle = (groupId: string) => {
+    if (archivedGroups.includes(groupId)) {
+      unarchiveGroup(groupId)
+    } else {
+      archiveGroup(groupId)
+    }
+    refreshArchivedGroups()
+  }
+
+  // Split into active and archived
+  const activeGroups = myGroupsData.groups.filter(
+    (g) => !archivedGroups.includes(g.id),
+  )
+  const archivedMyGroups = myGroupsData.groups.filter((g) =>
+    archivedGroups.includes(g.id),
+  )
 
   return (
     <>
@@ -89,30 +219,39 @@ function MyGroupsList({
           link and claim your participant to see it here.
         </p>
       ) : (
-        <ul className="grid gap-2 sm:grid-cols-2">
-          {myGroupsData.groups.map((group) => (
-            <li key={group.id}>
-              <Card className="hover:bg-accent transition-colors">
-                <CardContent className="p-4 flex items-center justify-between">
-                  <div>
-                    <Link
-                      href={`/groups/${group.id}/expenses`}
-                      className="font-medium hover:underline"
-                    >
-                      {group.name}
-                    </Link>
-                    <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                      <Users className="w-3 h-3" />
-                      {group.participants.length} participant
-                      {group.participants.length !== 1 ? 's' : ''} · you are{' '}
-                      <span className="font-medium">{group.myParticipant.name}</span>
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            </li>
-          ))}
-        </ul>
+        <>
+          {activeGroups.length > 0 && (
+            <ul className="grid gap-2 sm:grid-cols-2">
+              {activeGroups.map((group) => (
+                <MyGroupCard
+                  key={group.id}
+                  group={group}
+                  isArchived={false}
+                  onArchiveToggle={() => handleArchiveToggle(group.id)}
+                  onRemove={() => handleRemove(group.id, group.name)}
+                />
+              ))}
+            </ul>
+          )}
+          {archivedMyGroups.length > 0 && (
+            <div className="mt-4 opacity-60">
+              <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wide">
+                Archived
+              </p>
+              <ul className="grid gap-2 sm:grid-cols-2">
+                {archivedMyGroups.map((group) => (
+                  <MyGroupCard
+                    key={group.id}
+                    group={group}
+                    isArchived={true}
+                    onArchiveToggle={() => handleArchiveToggle(group.id)}
+                    onRemove={() => handleRemove(group.id, group.name)}
+                  />
+                ))}
+              </ul>
+            </div>
+          )}
+        </>
       )}
     </>
   )
@@ -196,6 +335,8 @@ function RecentGroupList_({
             myGroupsData={myGroupsData}
             recentGroupIds={groups.map((g) => g.id)}
             myGroupIds={myGroupIds}
+            archivedGroups={archivedGroups}
+            refreshArchivedGroups={refreshGroupsFromStorage}
           />
         </section>
       )}
