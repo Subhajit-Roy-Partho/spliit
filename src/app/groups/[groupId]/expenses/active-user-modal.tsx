@@ -44,7 +44,10 @@ export function ActiveUserModal({ groupId }: { groupId: string }) {
 
     // If the user is authenticated and has a claimed participant, auto-set and skip modal
     if (status === 'authenticated' && memberData?.member) {
-      localStorage.setItem(`${group.id}-activeUser`, memberData.member.participantId)
+      localStorage.setItem(
+        `${group.id}-activeUser`,
+        memberData.member.participantId,
+      )
       return
     }
 

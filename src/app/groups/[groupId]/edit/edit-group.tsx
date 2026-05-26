@@ -9,7 +9,8 @@ export const EditGroup = () => {
   const { groupId } = useCurrentGroup()
   const { data, isLoading } = trpc.groups.getDetails.useQuery({ groupId })
   const { mutateAsync: updateGroup } = trpc.groups.update.useMutation()
-  const { mutateAsync: claimParticipant } = trpc.groups.members.claim.useMutation()
+  const { mutateAsync: claimParticipant } =
+    trpc.groups.members.claim.useMutation()
   const utils = trpc.useUtils()
   const { status } = useSession()
 

@@ -118,8 +118,9 @@ export function GroupForm({
     <Form {...form}>
       <form
         onSubmit={form.handleSubmit(async (values) => {
-          const existingParticipantId =
-            group?.participants.find((p) => p.name === activeUser)?.id
+          const existingParticipantId = group?.participants.find(
+            (p) => p.name === activeUser,
+          )?.id
           // For new groups, participants have no IDs yet — pass the name instead
           const noneLabel = t('Settings.ActiveUserField.none')
           const activeParticipantName =

@@ -1,9 +1,9 @@
-import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { ExpenseFormValues, GroupFormValues } from '@/lib/schemas'
 import {
   ActivityType,
   Expense,
+  Prisma,
   RecurrenceRule,
   RecurringExpenseLink,
 } from '@prisma/client'

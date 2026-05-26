@@ -4,8 +4,8 @@ import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { ExpenseItem } from '@/lib/schemas'
 import { Currency } from '@/lib/currency'
+import { ExpenseItem } from '@/lib/schemas'
 import { cn, formatCurrency } from '@/lib/utils'
 import { ChevronDown, ChevronRight, Minus, Plus, Trash2 } from 'lucide-react'
 import { useLocale } from 'next-intl'
@@ -38,7 +38,8 @@ export function computePaidForFromItems(
       (p) => !item.excludedParticipants.includes(p.id),
     )
     if (included.length === 0) continue
-    const effectiveAmount = (item.sign ?? '+') === '-' ? -item.amount : item.amount
+    const effectiveAmount =
+      (item.sign ?? '+') === '-' ? -item.amount : item.amount
     const perPerson = effectiveAmount / included.length
     for (const p of included) {
       totals[p.id] = (totals[p.id] ?? 0) + perPerson
@@ -53,24 +54,35 @@ export function computePaidForFromItems(
     }))
 }
 
-export function ItemizedBill({ items, participants, currency, onChange }: Props) {
+export function ItemizedBill({
+  items,
+  participants,
+  currency,
+  onChange,
+}: Props) {
   const locale = useLocale()
   const baseId = useId()
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
 
   const total = items.reduce(
-    (sum, item) => sum + ((item.sign ?? '+') === '-' ? -item.amount : item.amount),
+    (sum, item) =>
+      sum + ((item.sign ?? '+') === '-' ? -item.amount : item.amount),
     0,
   )
 
   const addItem = () => {
     const id = `item-${Date.now()}`
-    onChange([...items, { id, name: '', amount: 0, sign: '+', excludedParticipants: [] }])
+    onChange([
+      ...items,
+      { id, name: '', amount: 0, sign: '+', excludedParticipants: [] },
+    ])
     setExpanded((e) => ({ ...e, [id]: false }))
   }
 
   const updateItem = (id: string, patch: Partial<ExpenseItem>) => {
-    onChange(items.map((item) => (item.id === id ? { ...item, ...patch } : item)))
+    onChange(
+      items.map((item) => (item.id === id ? { ...item, ...patch } : item)),
+    )
   }
 
   const removeItem = (id: string) => {
@@ -122,7 +134,11 @@ export function ItemizedBill({ items, participants, currency, onChange }: Props)
               {/* Sign toggle */}
               <button
                 type="button"
-                title={isDeduction ? 'Deduction (click to make addition)' : 'Addition (click to make deduction)'}
+                title={
+                  isDeduction
+                    ? 'Deduction (click to make addition)'
+                    : 'Addition (click to make deduction)'
+                }
                 onClick={() => toggleSign(item.id)}
                 className={cn(
                   'h-8 w-8 shrink-0 flex items-center justify-center rounded border text-xs font-bold transition-colors',
@@ -131,10 +147,16 @@ export function ItemizedBill({ items, participants, currency, onChange }: Props)
                     : 'border-border text-muted-foreground hover:border-primary hover:text-primary',
                 )}
               >
-                {isDeduction ? <Minus className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
+                {isDeduction ? (
+                  <Minus className="w-3 h-3" />
+                ) : (
+                  <Plus className="w-3 h-3" />
+                )}
               </button>
               <div className="flex items-center gap-1 shrink-0">
-                <span className={cn('text-sm', isDeduction && 'text-orange-500')}>
+                <span
+                  className={cn('text-sm', isDeduction && 'text-orange-500')}
+                >
                   {currency.symbol}
                 </span>
                 <Input
@@ -156,7 +178,9 @@ export function ItemizedBill({ items, participants, currency, onChange }: Props)
                 variant="ghost"
                 size="icon"
                 className="h-8 w-8 shrink-0"
-                onClick={() => setExpanded((e) => ({ ...e, [item.id]: !e[item.id] }))}
+                onClick={() =>
+                  setExpanded((e) => ({ ...e, [item.id]: !e[item.id] }))
+                }
                 title="Exclude participants"
               >
                 {isExpanded ? (
@@ -181,13 +205,26 @@ export function ItemizedBill({ items, participants, currency, onChange }: Props)
               <div className="border-t bg-muted/30 px-3 py-2">
                 <p className="text-xs text-muted-foreground mb-2">
                   {isDeduction ? (
-                    <>Deduction split among {includedCount} of {participants.length} participant{participants.length !== 1 ? 's' : ''}</>
+                    <>
+                      Deduction split among {includedCount} of{' '}
+                      {participants.length} participant
+                      {participants.length !== 1 ? 's' : ''}
+                    </>
                   ) : (
-                    <>Split among {includedCount} of {participants.length} participant{participants.length !== 1 ? 's' : ''}</>
+                    <>
+                      Split among {includedCount} of {participants.length}{' '}
+                      participant{participants.length !== 1 ? 's' : ''}
+                    </>
                   )}
                   {item.amount > 0 && includedCount > 0 && (
                     <span className="ml-1">
-                      ({isDeduction ? '-' : ''}{formatCurrency(currency, Math.round(item.amount * 100 / includedCount), locale)} each)
+                      ({isDeduction ? '-' : ''}
+                      {formatCurrency(
+                        currency,
+                        Math.round((item.amount * 100) / includedCount),
+                        locale,
+                      )}{' '}
+                      each)
                     </span>
                   )}
                 </p>
@@ -202,7 +239,10 @@ export function ItemizedBill({ items, participants, currency, onChange }: Props)
                           checked={!isExcluded}
                           onCheckedChange={() => toggleExclude(item.id, p.id)}
                         />
-                        <Label htmlFor={checkId} className="text-sm font-normal cursor-pointer">
+                        <Label
+                          htmlFor={checkId}
+                          className="text-sm font-normal cursor-pointer"
+                        >
                           {p.name}
                         </Label>
                       </div>

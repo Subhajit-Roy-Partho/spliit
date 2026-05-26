@@ -18,13 +18,13 @@ import {
 } from '@/components/ui/drawer'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+import { useToast } from '@/components/ui/use-toast'
 import { useMediaQuery } from '@/lib/hooks'
 import { cn } from '@/lib/utils'
 import { trpc } from '@/trpc/client'
 import { AppRouterOutput } from '@/trpc/routers/_app'
 import { useSession } from 'next-auth/react'
 import { ComponentProps, useEffect, useState } from 'react'
-import { useToast } from '@/components/ui/use-toast'
 
 export function ClaimParticipantModal({ groupId }: { groupId: string }) {
   const { data: session, status } = useSession()
@@ -51,7 +51,9 @@ export function ClaimParticipantModal({ groupId }: { groupId: string }) {
   if (status !== 'authenticated') return null
 
   const title = 'Which participant are you?'
-  const description = `You're logged in as ${session?.user?.name ?? session?.user?.email}. Select which participant in this group represents you.`
+  const description = `You're logged in as ${
+    session?.user?.name ?? session?.user?.email
+  }. Select which participant in this group represents you.`
 
   if (isDesktop) {
     return (
@@ -126,7 +128,10 @@ function ClaimForm({
       await claim({ groupId, participantId: selected })
       await utils.groups.members.getForGroup.invalidate({ groupId })
       await utils.groups.members.listMyGroups.invalidate()
-      toast({ title: 'Linked!', description: 'Your account is now linked to this participant.' })
+      toast({
+        title: 'Linked!',
+        description: 'Your account is now linked to this participant.',
+      })
       close()
     } catch (err: any) {
       setError(err.message ?? 'Failed to link participant.')
@@ -147,8 +152,14 @@ function ClaimForm({
         <div className="flex flex-col gap-3 my-2">
           {group?.participants.map((participant) => (
             <div key={participant.id} className="flex items-center space-x-2">
-              <RadioGroupItem value={participant.id} id={`claim-${participant.id}`} />
-              <Label htmlFor={`claim-${participant.id}`} className="flex-1 cursor-pointer">
+              <RadioGroupItem
+                value={participant.id}
+                id={`claim-${participant.id}`}
+              />
+              <Label
+                htmlFor={`claim-${participant.id}`}
+                className="flex-1 cursor-pointer"
+              >
                 {participant.name}
               </Label>
             </div>

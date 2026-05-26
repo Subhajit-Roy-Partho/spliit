@@ -67,7 +67,8 @@ function PwaInstallButton() {
               up icon)
             </li>
             <li>
-              Scroll down and tap <strong>&quot;Add to Home Screen&quot;</strong>
+              Scroll down and tap{' '}
+              <strong>&quot;Add to Home Screen&quot;</strong>
             </li>
             <li>
               Tap <strong>Add</strong> in the top right
@@ -79,9 +80,7 @@ function PwaInstallButton() {
   }
 
   if (deferredPrompt) {
-    return (
-      <Button onClick={handleInstall}>Install App on this Device</Button>
-    )
+    return <Button onClick={handleInstall}>Install App on this Device</Button>
   }
 
   return (
@@ -130,13 +129,11 @@ export default function DocsPage() {
       </section>
 
       <section id="install">
-        <h2 className="text-2xl font-semibold mb-3">
-          Install as App (PWA)
-        </h2>
+        <h2 className="text-2xl font-semibold mb-3">Install as App (PWA)</h2>
         <p className="text-muted-foreground mb-4">
           Dhar works as a Progressive Web App (PWA). You can install it on
-          Android, iPhone, iPad, or desktop so it opens like a native app —
-          no app store needed.
+          Android, iPhone, iPad, or desktop so it opens like a native app — no
+          app store needed.
         </p>
         <PwaInstallButton />
         <div className="mt-4 space-y-3 text-sm text-muted-foreground">
@@ -171,13 +168,16 @@ export default function DocsPage() {
             <h3 className="text-lg font-medium mb-1">Groups</h3>
             <p className="text-muted-foreground text-sm">
               Create a group for any shared expense scenario — a trip, a
-              household, a dinner. Each group has its own participants, expenses,
-              and balances. No account is required to create or join a group.
+              household, a dinner. Each group has its own participants,
+              expenses, and balances. No account is required to create or join a
+              group.
             </p>
           </div>
 
           <div>
-            <h3 className="text-lg font-medium mb-1">My Groups (with account)</h3>
+            <h3 className="text-lg font-medium mb-1">
+              My Groups (with account)
+            </h3>
             <p className="text-muted-foreground text-sm">
               Sign in with Google or email/password to save groups to your
               account. Groups appear in &quot;My Groups&quot; so you never lose
@@ -200,20 +200,18 @@ export default function DocsPage() {
             <h3 className="text-lg font-medium mb-1">Itemized Bill</h3>
             <p className="text-muted-foreground text-sm">
               Break an expense down into individual line items (e.g. each dish
-              at a restaurant). For each item, exclude participants who didn&apos;t
-              share it. The total and each participant&apos;s share are computed
-              automatically.
+              at a restaurant). For each item, exclude participants who
+              didn&apos;t share it. The total and each participant&apos;s share
+              are computed automatically.
             </p>
           </div>
 
           <div>
-            <h3 className="text-lg font-medium mb-1">
-              Receipt Scanning (AI)
-            </h3>
+            <h3 className="text-lg font-medium mb-1">Receipt Scanning (AI)</h3>
             <p className="text-muted-foreground text-sm">
-              Take or upload a photo of a receipt and let AI fill in the
-              expense details for you — title, date, category, total, and
-              itemized line items. Requires a signed-in account. Two modes:
+              Take or upload a photo of a receipt and let AI fill in the expense
+              details for you — title, date, category, total, and itemized line
+              items. Requires a signed-in account. Two modes:
             </p>
             <ul className="list-disc list-inside text-sm text-muted-foreground mt-2 space-y-1">
               <li>
@@ -226,17 +224,17 @@ export default function DocsPage() {
               </li>
             </ul>
             <p className="text-muted-foreground text-sm mt-2">
-              After selecting an image the crop tool opens automatically.
-              Smart crop pre-selects the receipt boundary — adjust if needed,
-              then click <strong>Crop &amp; Scan</strong>. Check{' '}
+              After selecting an image the crop tool opens automatically. Smart
+              crop pre-selects the receipt boundary — adjust if needed, then
+              click <strong>Crop &amp; Scan</strong>. Check{' '}
               <strong>Reduce image size</strong> for faster processing on slow
               connections.
             </p>
             <p className="text-muted-foreground text-sm mt-1">
               Supported receipt quirks: Costco{' '}
-              <code className="text-xs bg-muted px-1 rounded">-A</code>{' '}
-              savings lines, negative discount lines, tax, tip, service charge
-              (added as separate items split equally), multi-quantity lines.
+              <code className="text-xs bg-muted px-1 rounded">-A</code> savings
+              lines, negative discount lines, tax, tip, service charge (added as
+              separate items split equally), multi-quantity lines.
             </p>
           </div>
 
@@ -250,9 +248,7 @@ export default function DocsPage() {
           </div>
 
           <div>
-            <h3 className="text-lg font-medium mb-1">
-              Participant Claiming
-            </h3>
+            <h3 className="text-lg font-medium mb-1">Participant Claiming</h3>
             <p className="text-muted-foreground text-sm">
               If you created a group without an account, sign in and link your
               account to a participant in each group. This personalizes the
@@ -283,7 +279,9 @@ export default function DocsPage() {
           </div>
 
           <div>
-            <h3 className="text-lg font-medium mb-2">Add an itemized expense</h3>
+            <h3 className="text-lg font-medium mb-2">
+              Add an itemized expense
+            </h3>
             <ol className="list-decimal list-inside space-y-1 text-muted-foreground">
               <li>Open a group and click Create expense</li>
               <li>
@@ -299,25 +297,21 @@ export default function DocsPage() {
           </div>
 
           <div>
-            <h3 className="text-lg font-medium mb-2">
-              Scan a receipt with AI
-            </h3>
+            <h3 className="text-lg font-medium mb-2">Scan a receipt with AI</h3>
             <ol className="list-decimal list-inside space-y-1 text-muted-foreground">
               <li>Sign in to your account</li>
-              <li>Open a group and click the receipt icon next to Create expense</li>
+              <li>
+                Open a group and click the receipt icon next to Create expense
+              </li>
               <li>Choose Fast or Accurate mode</li>
               <li>Upload a photo of your receipt</li>
               <li>Review the extracted details and click Continue</li>
-              <li>
-                The expense form is pre-filled — adjust anything and save
-              </li>
+              <li>The expense form is pre-filled — adjust anything and save</li>
             </ol>
           </div>
 
           <div>
-            <h3 className="text-lg font-medium mb-2">
-              Settle up
-            </h3>
+            <h3 className="text-lg font-medium mb-2">Settle up</h3>
             <ol className="list-decimal list-inside space-y-1 text-muted-foreground">
               <li>Open a group and go to Balances</li>
               <li>See the suggested transfers to settle all debts</li>

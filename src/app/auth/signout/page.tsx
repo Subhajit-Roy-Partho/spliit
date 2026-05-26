@@ -24,7 +24,10 @@ export default function SignOutPage() {
           <CardDescription>You are being signed out.</CardDescription>
         </CardHeader>
         <CardContent>
-          <Button variant="outline" onClick={() => signOut({ callbackUrl: '/' })}>
+          <Button
+            variant="outline"
+            onClick={() => signOut({ callbackUrl: '/' })}
+          >
             Click here if not redirected
           </Button>
         </CardContent>

@@ -8,15 +8,15 @@ import { Button } from '@/components/ui/button'
 import { Toaster } from '@/components/ui/toaster'
 import { env } from '@/lib/env'
 import { TRPCProvider } from '@/trpc/client'
+import { SpeedInsights } from '@vercel/speed-insights/next'
 import type { Metadata, Viewport } from 'next'
+import { SessionProvider } from 'next-auth/react'
 import { NextIntlClientProvider, useTranslations } from 'next-intl'
 import { getLocale, getMessages } from 'next-intl/server'
-import { SessionProvider } from 'next-auth/react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { Suspense } from 'react'
 import './globals.css'
-import { SpeedInsights } from "@vercel/speed-insights/next"
 
 export const metadata: Metadata = {
   metadataBase: new URL(env.NEXT_PUBLIC_BASE_URL),
@@ -138,8 +138,23 @@ function Content({ children }: { children: React.ReactNode }) {
             </Link>
           </div>
           <div className="flex flex-col space-y text-muted-foreground text-xs">
-            <span>Built by <a href="https://subhajitroy.dev" target="_blank" rel="noopener">Subhajit Roy</a></span>
-            <span>Forked from <a href="https://github.com/spliit-app/spliit" target="_blank" rel="noopener">Spliit</a> by Sebastien Castiel</span>
+            <span>
+              Built by{' '}
+              <a href="https://subhajitroy.dev" target="_blank" rel="noopener">
+                Subhajit Roy
+              </a>
+            </span>
+            <span>
+              Forked from{' '}
+              <a
+                href="https://github.com/spliit-app/spliit"
+                target="_blank"
+                rel="noopener"
+              >
+                Spliit
+              </a>{' '}
+              by Sebastien Castiel
+            </span>
           </div>
         </div>
       </footer>

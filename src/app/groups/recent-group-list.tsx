@@ -9,7 +9,7 @@ import {
   unarchiveGroup,
 } from '@/app/groups/recent-groups-helpers'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
+import { CardContent } from '@/components/ui/card'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,8 +20,14 @@ import { useToast } from '@/components/ui/use-toast'
 import { getGroups } from '@/lib/api'
 import { trpc } from '@/trpc/client'
 import { AppRouterOutput } from '@/trpc/routers/_app'
-import { Archive, ArchiveRestore, MoreHorizontal, UserMinus, Users } from 'lucide-react'
-import { Loader2 } from 'lucide-react'
+import {
+  Archive,
+  ArchiveRestore,
+  Loader2,
+  MoreHorizontal,
+  UserMinus,
+  Users,
+} from 'lucide-react'
 import { useSession } from 'next-auth/react'
 import { useTranslations } from 'next-intl'
 import Link from 'next/link'
@@ -211,7 +217,10 @@ function MyGroupsList({
 
   return (
     <>
-      <LinkRecentGroupsBanner recentGroupIds={recentGroupIds} myGroupIds={myGroupIds} />
+      <LinkRecentGroupsBanner
+        recentGroupIds={recentGroupIds}
+        myGroupIds={myGroupIds}
+      />
 
       {!myGroupsData.groups.length ? (
         <p className="text-sm text-muted-foreground">

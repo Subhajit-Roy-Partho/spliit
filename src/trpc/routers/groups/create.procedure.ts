@@ -13,20 +13,22 @@ export const createGroupProcedure = baseProcedure
       activeParticipantName: z.string().optional(),
     }),
   )
-  .mutation(async ({ ctx, input: { groupFormValues, activeParticipantName } }) => {
-    const group = await createGroup(groupFormValues)
+  .mutation(
+    async ({ ctx, input: { groupFormValues, activeParticipantName } }) => {
+      const group = await createGroup(groupFormValues)
 
-    const userId = ctx.session?.user?.id
-    if (userId && activeParticipantName) {
-      const participant = group.participants.find(
-        (p) => p.name === activeParticipantName,
-      )
-      if (participant) {
-        await prisma.groupMember.create({
-          data: { userId, participantId: participant.id, groupId: group.id },
-        })
+      const userId = ctx.session?.user?.id
+      if (userId && activeParticipantName) {
+        const participant = group.participants.find(
+          (p) => p.name === activeParticipantName,
+        )
+        if (participant) {
+          await prisma.groupMember.create({
+            data: { userId, participantId: participant.id, groupId: group.id },
+          })
+        }
       }
-    }
 
-    return { groupId: group.id }
-  })
+      return { groupId: group.id }
+    },
+  )

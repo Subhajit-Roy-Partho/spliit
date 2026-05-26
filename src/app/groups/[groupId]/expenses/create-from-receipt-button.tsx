@@ -1,6 +1,7 @@
 'use client'
 
 import { CategoryIcon } from '@/app/groups/[groupId]/expenses/category-icon'
+import { ReceiptCropper } from '@/components/receipt-cropper'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -22,13 +23,8 @@ import {
 import { ToastAction } from '@/components/ui/toast'
 import { useToast } from '@/components/ui/use-toast'
 import { useMediaQuery } from '@/lib/hooks'
-import { ReceiptCropper } from '@/components/receipt-cropper'
 import { ReceiptResult, scanReceipt } from '@/lib/receipt'
-import {
-  formatCurrency,
-  formatDate,
-  getCurrencyFromGroup,
-} from '@/lib/utils'
+import { formatCurrency, formatDate, getCurrencyFromGroup } from '@/lib/utils'
 import { trpc } from '@/trpc/client'
 import {
   Camera,
@@ -93,7 +89,9 @@ function ReceiptDialogContent() {
   const [receiptInfo, setReceiptInfo] = useState<
     (ReceiptResult & { previewUrl: string }) | null
   >(null)
-  const [cropSrc, setCropSrc] = useState<{ url: string; file: File } | null>(null)
+  const [cropSrc, setCropSrc] = useState<{ url: string; file: File } | null>(
+    null,
+  )
   const { toast } = useToast()
   const router = useRouter()
 
@@ -312,8 +310,8 @@ function ReceiptDialogContent() {
         {receiptInfo?.items && receiptInfo.items.length > 0 && (
           <p className="text-sm text-muted-foreground mt-1 mb-2">
             ✓ {receiptInfo.items.length} item
-            {receiptInfo.items.length !== 1 ? 's' : ''} detected — itemized
-            bill will be pre-filled
+            {receiptInfo.items.length !== 1 ? 's' : ''} detected — itemized bill
+            will be pre-filled
           </p>
         )}
         <Button

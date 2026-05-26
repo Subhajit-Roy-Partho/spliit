@@ -39,7 +39,9 @@ export async function POST(req: NextRequest) {
   }
 
   const model =
-    MODELS[(modelKey as ModelKey) in MODELS ? (modelKey as ModelKey) : 'accurate']
+    MODELS[
+      (modelKey as ModelKey) in MODELS ? (modelKey as ModelKey) : 'accurate'
+    ]
 
   const client = new OpenAI({ apiKey, baseURL, timeout: 55_000 })
   const categories = await getCategories()
@@ -102,9 +104,10 @@ Categories: ${categories.map((c) => formatCategoryForAIPrompt(c)).join(', ')}`,
     })
 
     const raw = completion.choices.at(0)?.message.content ?? '{}'
-    const parsed = JSON.parse(
-      raw.replace(/```json|```/g, '').trim(),
-    ) as Record<string, unknown>
+    const parsed = JSON.parse(raw.replace(/```json|```/g, '').trim()) as Record<
+      string,
+      unknown
+    >
 
     return NextResponse.json({
       title: typeof parsed.title === 'string' ? parsed.title : null,
@@ -130,7 +133,8 @@ Categories: ${categories.map((c) => formatCategoryForAIPrompt(c)).join(', ')}`,
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
     console.error('[receipt-parse]', message)
-    const isTimeout = message.toLowerCase().includes('timeout') || message.includes('ETIMEDOUT')
+    const isTimeout =
+      message.toLowerCase().includes('timeout') || message.includes('ETIMEDOUT')
     return NextResponse.json(
       {
         error: isTimeout

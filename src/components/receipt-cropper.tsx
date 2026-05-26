@@ -8,11 +8,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { compressImage } from '@/lib/receipt'
+import 'cropperjs/dist/cropper.css'
 import { Loader2, ScanSearch } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import Cropper from 'react-cropper'
-import 'cropperjs/dist/cropper.css'
 
 interface CropData {
   x: number
@@ -90,14 +89,21 @@ export function ReceiptCropper({
         })
         const url = URL.createObjectURL(compressed)
         const img = new Image()
-        await new Promise<void>((res) => { img.onload = () => res(); img.src = url })
+        await new Promise<void>((res) => {
+          img.onload = () => res()
+          img.src = url
+        })
         const c2 = document.createElement('canvas')
-        c2.width = img.naturalWidth; c2.height = img.naturalHeight
+        c2.width = img.naturalWidth
+        c2.height = img.naturalHeight
         c2.getContext('2d')!.drawImage(img, 0, 0)
         URL.revokeObjectURL(url)
         onConfirm(c2.toDataURL('image/jpeg', 0.8))
       } else {
-        const canvas = cropper.getCroppedCanvas({ maxWidth: 1920, maxHeight: 1920 })
+        const canvas = cropper.getCroppedCanvas({
+          maxWidth: 1920,
+          maxHeight: 1920,
+        })
         onConfirm(canvas.toDataURL('image/jpeg', 0.85))
       }
     } finally {
@@ -106,7 +112,12 @@ export function ReceiptCropper({
   }
 
   return (
-    <Dialog open onOpenChange={(open) => { if (!open) onCancel() }}>
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open) onCancel()
+      }}
+    >
       <DialogContent className="max-w-lg p-4">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -146,12 +157,19 @@ export function ReceiptCropper({
                 Reduce image size (faster, lower quality)
               </label>
               <div className="flex gap-2">
-                <Button variant="outline" onClick={onCancel} disabled={compressing}>
+                <Button
+                  variant="outline"
+                  onClick={onCancel}
+                  disabled={compressing}
+                >
                   Cancel
                 </Button>
                 <Button onClick={handleConfirm} disabled={compressing}>
                   {compressing ? (
-                    <><Loader2 className="w-3.5 h-3.5 animate-spin mr-1" />Processing…</>
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" />
+                      Processing…
+                    </>
                   ) : (
                     'Crop & Scan'
                   )}

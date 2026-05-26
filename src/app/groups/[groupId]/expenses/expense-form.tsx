@@ -1,6 +1,11 @@
 import { CategorySelector } from '@/components/category-selector'
 import { CurrencySelector } from '@/components/currency-selector'
 import { ExpenseDocumentsInput } from '@/components/expense-documents-input'
+import {
+  ItemizedBill,
+  computePaidForFromItems,
+} from '@/components/itemized-bill'
+import { ReceiptCropper } from '@/components/receipt-cropper'
 import { SubmitButton } from '@/components/submit-button'
 import { Button } from '@/components/ui/button'
 import {
@@ -33,15 +38,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Switch } from '@/components/ui/switch'
 import { Locale } from '@/i18n/request'
 import { randomId } from '@/lib/api'
 import { defaultCurrencyList, getCurrency } from '@/lib/currency'
 import { RuntimeFeatureFlags } from '@/lib/featureFlags'
 import { useActiveUser, useCurrencyRate } from '@/lib/hooks'
+import { scanReceipt } from '@/lib/receipt'
 import {
   ExpenseFormValues,
+  ExpenseItem,
   SplittingOptions,
   expenseFormSchema,
+  expenseItemSchema,
 } from '@/lib/schemas'
 import { calculateShare } from '@/lib/totals'
 import {
@@ -54,12 +63,16 @@ import {
 import { AppRouterOutput } from '@/trpc/routers/_app'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { RecurrenceRule } from '@prisma/client'
-import { ItemizedBill, computePaidForFromItems } from '@/components/itemized-bill'
-import { Switch } from '@/components/ui/switch'
-import { ExpenseItem, expenseItemSchema } from '@/lib/schemas'
-import { Camera, ChevronRight, Images, Loader2, Receipt, Save, ScanSearch, Zap } from 'lucide-react'
-import { ReceiptCropper } from '@/components/receipt-cropper'
-import { scanReceipt } from '@/lib/receipt'
+import {
+  Camera,
+  ChevronRight,
+  Images,
+  Loader2,
+  Receipt,
+  Save,
+  ScanSearch,
+  Zap,
+} from 'lucide-react'
 import { useLocale, useTranslations } from 'next-intl'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
@@ -321,7 +334,9 @@ export function ExpenseForm({
   const [scanPending, setScanPending] = useState(false)
   const [scanModel, setScanModel] = useState<'fast' | 'accurate'>('accurate')
   const [showModelPicker, setShowModelPicker] = useState(false)
-  const [cropSrc, setCropSrc] = useState<{ url: string; file: File } | null>(null)
+  const [cropSrc, setCropSrc] = useState<{ url: string; file: File } | null>(
+    null,
+  )
   const galleryInputRef = useRef<HTMLInputElement>(null)
   const cameraInputRef = useRef<HTMLInputElement>(null)
 
@@ -330,12 +345,17 @@ export function ExpenseForm({
       setScanPending(true)
       setShowModelPicker(false)
       const result = await scanReceipt(base64, scanModel)
-      if (result.title) form.setValue('title', result.title, { shouldDirty: true })
+      if (result.title)
+        form.setValue('title', result.title, { shouldDirty: true })
       if (result.date) {
         const d = new Date(`${result.date}T12:00:00Z`)
-        if (!isNaN(d.getTime())) form.setValue('expenseDate', d, { shouldDirty: true })
+        if (!isNaN(d.getTime()))
+          form.setValue('expenseDate', d, { shouldDirty: true })
       }
-      if (result.categoryId) form.setValue('category', Number(result.categoryId), { shouldDirty: true })
+      if (result.categoryId)
+        form.setValue('category', Number(result.categoryId), {
+          shouldDirty: true,
+        })
       if (result.items && result.items.length > 0) {
         const items = result.items.map((item, i) => ({
           id: `receipt-item-${i}`,
@@ -367,14 +387,22 @@ export function ExpenseForm({
     if (!isItemizedMode) return
     const items = form.getValues('items') ?? []
     const total = items.reduce(
-      (sum: number, i: ExpenseItem) => sum + ((i.sign ?? '+') === '-' ? -i.amount : i.amount),
+      (sum: number, i: ExpenseItem) =>
+        sum + ((i.sign ?? '+') === '-' ? -i.amount : i.amount),
       0,
     )
     form.setValue('amount', total as any, { shouldDirty: true })
     form.setValue('splitMode', 'BY_AMOUNT', { shouldDirty: true })
-    const paidFor = computePaidForFromItems(items, group.participants, groupCurrency)
+    const paidFor = computePaidForFromItems(
+      items,
+      group.participants,
+      groupCurrency,
+    )
     if (paidFor.length > 0) {
-      form.setValue('paidFor', paidFor as any, { shouldDirty: true, shouldValidate: true })
+      form.setValue('paidFor', paidFor as any, {
+        shouldDirty: true,
+        shouldValidate: true,
+      })
     }
   }, [watchedItems, isItemizedMode])
 
@@ -570,22 +598,38 @@ export function ExpenseForm({
                 />
                 {showModelPicker && (
                   <div className="absolute right-0 top-8 z-10 bg-popover border rounded-lg shadow-md p-2 flex flex-col gap-1 min-w-[160px]">
-                    <p className="text-xs text-muted-foreground px-2 pb-1">Scan mode</p>
+                    <p className="text-xs text-muted-foreground px-2 pb-1">
+                      Scan mode
+                    </p>
                     {(['accurate', 'fast'] as const).map((m) => (
                       <button
                         key={m}
                         type="button"
-                        onClick={() => { setScanModel(m); setShowModelPicker(false) }}
-                        className={`flex items-center gap-2 px-2 py-1.5 rounded text-xs text-left transition-colors ${scanModel === m ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}`}
+                        onClick={() => {
+                          setScanModel(m)
+                          setShowModelPicker(false)
+                        }}
+                        className={`flex items-center gap-2 px-2 py-1.5 rounded text-xs text-left transition-colors ${
+                          scanModel === m
+                            ? 'bg-primary text-primary-foreground'
+                            : 'hover:bg-muted'
+                        }`}
                       >
-                        {m === 'accurate' ? <ScanSearch className="w-3 h-3" /> : <Zap className="w-3 h-3" />}
+                        {m === 'accurate' ? (
+                          <ScanSearch className="w-3 h-3" />
+                        ) : (
+                          <Zap className="w-3 h-3" />
+                        )}
                         {m === 'accurate' ? 'Accurate' : 'Fast'}
                       </button>
                     ))}
                     <hr className="my-1" />
                     <button
                       type="button"
-                      onClick={() => { setShowModelPicker(false); galleryInputRef.current?.click() }}
+                      onClick={() => {
+                        setShowModelPicker(false)
+                        galleryInputRef.current?.click()
+                      }}
                       className="flex items-center gap-2 px-2 py-1.5 rounded text-xs hover:bg-muted text-left"
                     >
                       <Images className="w-3 h-3" />
@@ -593,7 +637,10 @@ export function ExpenseForm({
                     </button>
                     <button
                       type="button"
-                      onClick={() => { setShowModelPicker(false); cameraInputRef.current?.click() }}
+                      onClick={() => {
+                        setShowModelPicker(false)
+                        cameraInputRef.current?.click()
+                      }}
                       className="flex items-center gap-2 px-2 py-1.5 rounded text-xs hover:bg-muted text-left"
                     >
                       <Camera className="w-3 h-3" />
@@ -855,11 +902,23 @@ export function ExpenseForm({
                           setIsItemizedMode(checked)
                           if (!checked) {
                             form.setValue('items', [], { shouldDirty: true })
-                            form.setValue('splitMode', 'EVENLY', { shouldDirty: true })
-                          } else if ((form.getValues('items') ?? []).length === 0) {
+                            form.setValue('splitMode', 'EVENLY', {
+                              shouldDirty: true,
+                            })
+                          } else if (
+                            (form.getValues('items') ?? []).length === 0
+                          ) {
                             form.setValue(
                               'items',
-                              [{ id: `item-${Date.now()}`, name: '', amount: 0, sign: '+' as const, excludedParticipants: [] }],
+                              [
+                                {
+                                  id: `item-${Date.now()}`,
+                                  name: '',
+                                  amount: 0,
+                                  sign: '+' as const,
+                                  excludedParticipants: [],
+                                },
+                              ],
                               { shouldDirty: true },
                             )
                           }

@@ -13,6 +13,9 @@ export const deleteGroupExpenseProcedure = baseProcedure
   )
   .mutation(async ({ input: { expenseId, groupId, participantId } }) => {
     await deleteExpense(groupId, expenseId, participantId)
-    await prisma.group.update({ where: { id: groupId }, data: { updatedAt: new Date() } })
+    await prisma.group.update({
+      where: { id: groupId },
+      data: { updatedAt: new Date() },
+    })
     return {}
   })

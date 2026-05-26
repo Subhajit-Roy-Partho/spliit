@@ -33,7 +33,7 @@ export default function SignUpPage() {
       body: JSON.stringify({ name, email, password }),
     })
 
-    const data = await res.json() as { error?: string }
+    const data = (await res.json()) as { error?: string }
     if (!res.ok) {
       setError(data.error || 'Registration failed.')
       setLoading(false)

@@ -39,7 +39,8 @@ function ControlledClaimForm({
   const [selected, setSelected] = useState('')
   const [error, setError] = useState('')
   const { data: groupData } = trpc.groups.get.useQuery({ groupId })
-  const { mutateAsync: claim, isPending } = trpc.groups.members.claim.useMutation()
+  const { mutateAsync: claim, isPending } =
+    trpc.groups.members.claim.useMutation()
   const utils = trpc.useUtils()
   const { toast } = useToast()
 
@@ -59,22 +60,35 @@ function ControlledClaimForm({
       })
       onClose()
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to link participant.')
+      setError(
+        err instanceof Error ? err.message : 'Failed to link participant.',
+      )
     }
   }
 
   return (
-    <form className={cn('grid items-start gap-4', className)} onSubmit={handleSubmit}>
+    <form
+      className={cn('grid items-start gap-4', className)}
+      onSubmit={handleSubmit}
+    >
       {error && (
-        <p className="text-sm text-destructive bg-destructive/10 p-2 rounded">{error}</p>
+        <p className="text-sm text-destructive bg-destructive/10 p-2 rounded">
+          {error}
+        </p>
       )}
       {groupData?.group ? (
         <RadioGroup onValueChange={setSelected}>
           <div className="flex flex-col gap-3 my-2">
             {groupData.group.participants.map((participant) => (
               <div key={participant.id} className="flex items-center space-x-2">
-                <RadioGroupItem value={participant.id} id={`link-${participant.id}`} />
-                <Label htmlFor={`link-${participant.id}`} className="flex-1 cursor-pointer">
+                <RadioGroupItem
+                  value={participant.id}
+                  id={`link-${participant.id}`}
+                />
+                <Label
+                  htmlFor={`link-${participant.id}`}
+                  className="flex-1 cursor-pointer"
+                >
                   {participant.name}
                 </Label>
               </div>
@@ -107,7 +121,9 @@ function ControlledClaimDialog({
 }) {
   const isDesktop = useMediaQuery('(min-width: 768px)')
   const { data: session } = useSession()
-  const description = `You're logged in as ${session?.user?.name ?? session?.user?.email}. Select which participant in "${groupName}" represents you.`
+  const description = `You're logged in as ${
+    session?.user?.name ?? session?.user?.email
+  }. Select which participant in "${groupName}" represents you.`
 
   if (isDesktop) {
     return (
@@ -117,7 +133,11 @@ function ControlledClaimDialog({
             <DialogTitle>Which participant are you?</DialogTitle>
             <DialogDescription>{description}</DialogDescription>
           </DialogHeader>
-          <ControlledClaimForm groupId={groupId} groupName={groupName} onClose={onClose} />
+          <ControlledClaimForm
+            groupId={groupId}
+            groupName={groupName}
+            onClose={onClose}
+          />
         </DialogContent>
       </Dialog>
     )

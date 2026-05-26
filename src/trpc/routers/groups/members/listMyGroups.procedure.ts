@@ -11,5 +11,7 @@ export const listMyGroupsProcedure = authedProcedure.query(async ({ ctx }) => {
     },
     orderBy: { group: { updatedAt: 'desc' } },
   })
-  return { groups: members.map((m) => ({ ...m.group, myParticipant: m.participant })) }
+  return {
+    groups: members.map((m) => ({ ...m.group, myParticipant: m.participant })),
+  }
 })
