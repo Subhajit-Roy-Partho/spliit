@@ -11,7 +11,7 @@ const remotePatterns = []
 // S3 Storage
 if (process.env.S3_UPLOAD_ENDPOINT) {
   // custom endpoint for providers other than AWS
-  const url = new URL(process.env.S3_UPLOAD_ENDPOINT);
+  const url = new URL(process.env.S3_UPLOAD_ENDPOINT)
   remotePatterns.push({
     hostname: url.hostname,
   })
@@ -27,9 +27,12 @@ const nextConfig = {
   // Emit a self-contained server into .next/standalone, containing only the
   // files Next.js traced as actually reachable at runtime. The Docker runtime
   // stage copies that instead of a full production `node_modules`.
-  output: 'standalone',
+  // Disabled on Vercel (`VERCEL=1` is set on every Vercel build): Vercel's
+  // own build pipeline cannot consume the standalone trace output and fails
+  // the deployment while collecting it (missing next-server.js.nft.json).
+  ...(process.env.VERCEL ? {} : { output: 'standalone' }),
   images: {
-    remotePatterns
+    remotePatterns,
   },
   reactCompiler: true,
   // Required to run in a codespace (see https://github.com/vercel/next.js/issues/58019)
@@ -66,7 +69,7 @@ const nextConfig = {
           {
             key: 'Content-Security-Policy',
             value:
-              "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
+              "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://www.google-analytics.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
           },
         ],
       },
