@@ -79,9 +79,8 @@ export function ReceiptCropper({
     setCompressing(true)
     try {
       if (aggressiveCompress && originalFile) {
-        const { default: imageCompression } = await import(
-          'browser-image-compression'
-        )
+        const { default: imageCompression } =
+          await import('browser-image-compression')
         const compressed = await imageCompression(originalFile, {
           maxSizeMB: 0.5,
           maxWidthOrHeight: 1200,

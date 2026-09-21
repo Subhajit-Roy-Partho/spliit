@@ -35,7 +35,7 @@ export function HeaderAuth() {
         .join('')
         .toUpperCase()
         .slice(0, 2)
-    : user.email?.[0]?.toUpperCase() ?? '?'
+    : (user.email?.[0]?.toUpperCase() ?? '?')
 
   return (
     <DropdownMenu>

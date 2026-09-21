@@ -4,9 +4,8 @@ export async function compressImage(
 ): Promise<string> {
   let workingFile = file
   if (aggressive) {
-    const { default: imageCompression } = await import(
-      'browser-image-compression'
-    )
+    const { default: imageCompression } =
+      await import('browser-image-compression')
     workingFile = await imageCompression(file, {
       maxSizeMB: 0.5,
       maxWidthOrHeight: 1200,

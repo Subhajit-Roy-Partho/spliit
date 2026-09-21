@@ -28,6 +28,7 @@ yarn-error.log*
 # local env files
 .env*.local
 *.env
+.env*
 !scripts/build.env
 
 # vercel
@@ -39,4 +40,15 @@ next-env.d.ts
 
 # db
 postgres-data
-.env*
+
+# prisma generated client (regenerated via `prisma generate`)
+/src/generated
+
+# playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+
+# performance suite output (perf/run.ts)
+/perf-report.json

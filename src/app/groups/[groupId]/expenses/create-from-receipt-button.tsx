@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/drawer'
 import { ToastAction } from '@/components/ui/toast'
 import { useToast } from '@/components/ui/use-toast'
+import { useAnalytics } from '@/lib/analytics/context'
 import { useMediaQuery } from '@/lib/hooks'
 import { ReceiptResult, scanReceipt } from '@/lib/receipt'
 import { formatCurrency, formatDate, getCurrencyFromGroup } from '@/lib/utils'
@@ -78,7 +79,8 @@ export function CreateFromReceiptButton() {
 }
 
 function ReceiptDialogContent() {
-  const { group } = useCurrentGroup()
+  const { groupId, group } = useCurrentGroup()
+  const sendEvent = useAnalytics()
   const { data: categoriesData } = trpc.categories.list.useQuery()
   const categories = categoriesData?.categories
 
@@ -124,6 +126,10 @@ function ReceiptDialogContent() {
   }
 
   const handleFile = (file: File) => {
+    sendEvent(
+      { event: 'expense: scan receipt', props: {} },
+      `/groups/${groupId}/expenses`,
+    )
     setCropSrc({ url: URL.createObjectURL(file), file })
   }
 
@@ -242,7 +248,7 @@ function ReceiptDialogContent() {
 
           <div className="col-span-2">
             <strong>{t('Dialog.titleLabel')}</strong>
-            <div>{receiptInfo ? receiptInfo.title ?? <Unknown /> : '…'}</div>
+            <div>{receiptInfo ? (receiptInfo.title ?? <Unknown />) : '…'}</div>
           </div>
           <div className="col-span-2">
             <strong>{t('Dialog.categoryLabel')}</strong>
@@ -328,6 +334,10 @@ function ReceiptDialogContent() {
               }))
               localStorage.setItem('pendingReceiptItems', JSON.stringify(items))
             }
+            sendEvent(
+              { event: 'expense: create from receipt', props: {} },
+              `/groups/${groupId}/expenses`,
+            )
             router.push(
               `/groups/${group.id}/expenses/create?amount=${
                 receiptInfo.total ?? 0

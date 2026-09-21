@@ -1,5 +1,5 @@
 import { auth } from '@/auth'
-import { Prisma } from '@prisma/client'
+import { Prisma } from '@/generated/prisma/client'
 import { TRPCError, initTRPC } from '@trpc/server'
 import { cache } from 'react'
 import superjson from 'superjson'

@@ -32,9 +32,14 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Locale } from '@/i18n/request'
+import { useAnalytics } from '@/lib/analytics/context'
 import { getGroup } from '@/lib/api'
 import { defaultCurrencyList, getCurrency } from '@/lib/currency'
-import { GroupFormValues, groupFormSchema } from '@/lib/schemas'
+import {
+  GROUP_INFORMATION_MAX,
+  GroupFormValues,
+  groupFormSchema,
+} from '@/lib/schemas'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Save, Trash2 } from 'lucide-react'
 import { useLocale, useTranslations } from 'next-intl'
@@ -52,12 +57,15 @@ export type Props = {
     activeParticipantName?: string,
   ) => Promise<void>
   protectedParticipantIds?: string[]
+  /** Resolved on the server, since the runtime variable is not public. */
+  defaultCurrencyCode?: string
 }
 
 export function GroupForm({
   group,
   onSubmit,
   protectedParticipantIds = [],
+  defaultCurrencyCode = 'USD',
 }: Props) {
   const locale = useLocale()
   const t = useTranslations('GroupForm')
@@ -75,7 +83,7 @@ export function GroupForm({
           name: '',
           information: '',
           currency: '',
-          currencyCode: process.env.NEXT_PUBLIC_DEFAULT_CURRENCY_CODE || 'USD', // TODO: If NEXT_PUBLIC_DEFAULT_CURRENCY_CODE, is not set, determine the default currency code based on locale
+          currencyCode: defaultCurrencyCode, // TODO: derive from the locale when not configured
           participants: [
             { name: t('Participants.John') },
             { name: t('Participants.Jane') },
@@ -88,6 +96,7 @@ export function GroupForm({
     name: 'participants',
     keyName: 'key',
   })
+  const sendEvent = useAnalytics()
 
   const [activeUser, setActiveUser] = useState<string | null>(null)
   useEffect(() => {
@@ -127,6 +136,14 @@ export function GroupForm({
             !group && activeUser && activeUser !== noneLabel
               ? activeUser
               : undefined
+          if (group) {
+            sendEvent(
+              { event: 'group: update', props: {} },
+              `/groups/${group.id}/edit`,
+            )
+          } else {
+            sendEvent({ event: 'group: create', props: {} }, `/groups`)
+          }
           await onSubmit(values, existingParticipantId, activeParticipantName)
         })}
       >
@@ -228,6 +245,7 @@ export function GroupForm({
                       <Textarea
                         rows={2}
                         className="text-base"
+                        maxLength={GROUP_INFORMATION_MAX}
                         {...field}
                         placeholder={t('InformationField.placeholder')}
                       />

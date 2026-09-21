@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { useToast } from '@/components/ui/use-toast'
 import { getGroups } from '@/lib/api'
+import { MAX_GROUPS_PER_QUERY } from '@/lib/group-query-limits'
 import { trpc } from '@/trpc/client'
 import { AppRouterOutput } from '@/trpc/routers/_app'
 import {
@@ -33,6 +34,7 @@ import { useTranslations } from 'next-intl'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { PropsWithChildren, useEffect, useState } from 'react'
+import { GlobalBalanceCard } from './global-balance-card'
 import { LinkRecentGroupsBanner } from './link-recent-groups-banner'
 import { RecentGroupListCard } from './recent-group-list-card'
 
@@ -313,8 +315,8 @@ function RecentGroupList_({
   isAuthenticated: boolean
 }) {
   const t = useTranslations('Groups')
-  const { data, isLoading } = trpc.groups.list.useQuery({
-    groupIds: groups.map((group) => group.id),
+  const { data, isLoading, isError, refetch } = trpc.groups.list.useQuery({
+    groupIds: groups.map((group) => group.id).slice(0, MAX_GROUPS_PER_QUERY),
   })
   const { data: myGroupsData } = trpc.groups.members.listMyGroups.useQuery(
     undefined,
@@ -328,6 +330,30 @@ function RecentGroupList_({
     isAuthenticated && myGroupIds.length > 0
       ? groups.filter((g) => !myGroupIds.includes(g.id))
       : groups
+
+  if (isError) {
+    return (
+      <GroupsPage reload={refreshGroupsFromStorage}>
+        <div className="text-sm space-y-2">
+          <p>{t('loadError')}</p>
+          <Button variant="secondary" onClick={() => refetch()}>
+            {t('retry')}
+          </Button>
+        </div>
+      </GroupsPage>
+    )
+  }
+
+  if (isLoading || !data) {
+    return (
+      <GroupsPage reload={refreshGroupsFromStorage}>
+        <p>
+          <Loader2 className="w-4 m-4 mr-2 inline animate-spin" />{' '}
+          {t('loadingRecent')}
+        </p>
+      </GroupsPage>
+    )
+  }
 
   const { starredGroupInfo, groupInfo, archivedGroupInfo } = sortGroups({
     groups: recentGroups,
@@ -349,13 +375,9 @@ function RecentGroupList_({
           />
         </section>
       )}
+      <GlobalBalanceCard groups={groups} />
 
-      {isLoading && !data ? (
-        <p>
-          <Loader2 className="w-4 m-4 mr-2 inline animate-spin" />{' '}
-          {t('loadingRecent')}
-        </p>
-      ) : data?.groups.length === 0 && groups.length === 0 ? (
+      {data?.groups.length === 0 && groups.length === 0 ? (
         <div className="text-sm space-y-2">
           <p>{t('NoRecent.description')}</p>
           <p>
