@@ -11,7 +11,7 @@
   "Header": {
     "groups": "Groups"
   },
-<  "Errors": {
+  "Errors": {
     "title": "Something went wrong",
     "groupTitle": "Couldn’t load this group",
     "generic": "Please try again. If this keeps happening, reload the page.",
