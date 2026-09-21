@@ -27,5 +27,9 @@ export async function getAnalyticsConfig(): Promise<AnalyticsConfig> {
         apiUrl: env.PLAUSIBLE_API_URL,
       },
     }))
+    .with('google', (provider) => ({
+      provider,
+      options: { measurementId: env.GOOGLE_ANALYTICS_ID },
+    }))
     .exhaustive()
 }

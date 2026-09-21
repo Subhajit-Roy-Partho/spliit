@@ -1,5 +1,6 @@
 import { AnalyticsProviderId } from '@/lib/analytics/provider-ids'
 import { ConsoleAnalyticsProvider } from '@/lib/analytics/providers/console'
+import { GoogleAnalyticsProvider } from '@/lib/analytics/providers/google'
 import { PlausibleAnalyticsProvider } from '@/lib/analytics/providers/plausible'
 import { AnalyticsProviderComponent } from '@/lib/analytics/types'
 
@@ -18,4 +19,5 @@ export const analyticsProviders: Record<
 > = {
   console: ConsoleAnalyticsProvider,
   plausible: PlausibleAnalyticsProvider,
+  google: GoogleAnalyticsProvider,
 }

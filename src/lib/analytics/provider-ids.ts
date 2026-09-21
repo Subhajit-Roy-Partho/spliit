@@ -7,6 +7,10 @@
  * This module is deliberately dependency-free: `src/lib/env.ts` imports it, and
  * `env.ts` is pulled in by server-side scripts that must not load React.
  */
-export const ANALYTICS_PROVIDER_IDS = ['console', 'plausible'] as const
+export const ANALYTICS_PROVIDER_IDS = [
+  'console',
+  'plausible',
+  'google',
+] as const
 
 export type AnalyticsProviderId = (typeof ANALYTICS_PROVIDER_IDS)[number]

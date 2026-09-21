@@ -35,14 +35,14 @@
 
 ## Stack
 
-| Layer | Technology |
-|---|---|
-| Framework | [Next.js 16](https://nextjs.org/) (App Router) |
-| Auth | [Auth.js v5](https://authjs.dev/) (Credentials + Google OAuth) |
-| Database | PostgreSQL via [Prisma](https://prisma.io) |
-| API | [tRPC](https://trpc.io) |
-| UI | [shadcn/ui](https://ui.shadcn.com/) + [Tailwind CSS](https://tailwindcss.com/) |
-| Hosting | [Vercel](https://vercel.com/) |
+| Layer     | Technology                                                                     |
+| --------- | ------------------------------------------------------------------------------ |
+| Framework | [Next.js 16](https://nextjs.org/) (App Router)                                 |
+| Auth      | [Auth.js v5](https://authjs.dev/) (Credentials + Google OAuth)                 |
+| Database  | PostgreSQL via [Prisma](https://prisma.io)                                     |
+| API       | [tRPC](https://trpc.io)                                                        |
+| UI        | [shadcn/ui](https://ui.shadcn.com/) + [Tailwind CSS](https://tailwindcss.com/) |
+| Hosting   | [Vercel](https://vercel.com/)                                                  |
 
 ## Getting Started
 
@@ -155,9 +155,9 @@ name: spliit
 services:
   app:
     image: ghcr.io/spliit-app/spliit:latest
-    user: "1000:1000" # change to your user id or remove if you want root
+    user: '1000:1000' # change to your user id or remove if you want root
     ports:
-      - "8080:3000/tcp"
+      - '8080:3000/tcp'
     environment:
       POSTGRES_PRISMA_URL: postgresql://spliit:spliit@database:5432/spliit
       POSTGRES_URL_NON_POOLING: postgresql://spliit:spliit@database:5432/spliit
@@ -170,7 +170,7 @@ services:
 
   database:
     image: postgres:17.3
-    user: "1000:1000" # same as above
+    user: '1000:1000' # same as above
     environment:
       POSTGRES_USER: spliit
       POSTGRES_PASSWORD: spliit
@@ -349,6 +349,17 @@ PLAUSIBLE_SCRIPT_URL=/js/script.manual.js
 PLAUSIBLE_API_URL=/proxy/api/event
 ```
 
+#### `google`
+
+Reports to Google Analytics 4 via `gtag.js` (Dhar addition). Set your measurement ID:
+
+```.env
+ANALYTICS_PROVIDER=google
+GOOGLE_ANALYTICS_ID=G-44B8NXDM8E
+```
+
+Automatic pageviews are disabled: gtag would otherwise report `location.href` on every navigation, which on a group page carries the group ID. Pageviews go through `TrackPage` with the anonymized URL instead, and event names are mapped to GA4-safe identifiers (`group: create` → `group_create`).
+
 #### What is reported
 
 Pageviews for a handful of pages, and one event per significant action: creating and updating a group, creating, updating and deleting an expense, attaching a document, scanning a receipt, and exporting expenses.
@@ -369,10 +380,10 @@ A provider supplies a transport — where events go — and optionally a `Script
 
 In [Google Cloud Console](https://console.cloud.google.com/) → APIs & Services → Credentials → your OAuth 2.0 client:
 
-| Field | Value |
-|---|---|
-| Authorised JavaScript origins | `http://localhost:3000`, `https://dhar.vercel.app` |
-| Authorised redirect URIs | `http://localhost:3000/api/auth/callback/google`, `https://dhar.vercel.app/api/auth/callback/google` |
+| Field                         | Value                                                                                                |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------- |
+| Authorised JavaScript origins | `http://localhost:3000`, `https://dhar.vercel.app`                                                   |
+| Authorised redirect URIs      | `http://localhost:3000/api/auth/callback/google`, `https://dhar.vercel.app/api/auth/callback/google` |
 
 ## Deployment on Vercel
 
@@ -380,22 +391,22 @@ In [Google Cloud Console](https://console.cloud.google.com/) → APIs & Services
 
 Required environment variables on Vercel:
 
-| Variable | Description |
-|---|---|
-| `POSTGRES_PRISMA_URL` | Pooled connection string |
-| `POSTGRES_URL_NON_POOLING` | Direct connection string |
-| `AUTH_SECRET` | Random 32-byte base64 string (`openssl rand -base64 32`) |
-| `AUTH_URL` | Your production URL, e.g. `https://dhar.vercel.app` |
-| `GOOGLE_CLIENT_ID` | From Google Cloud Console |
-| `GOOGLE_CLIENT_SECRET` | From Google Cloud Console |
-| `OPENAI_API_KEY` | OpenAI API key (or NanoGPT key when using `OPENAI_BASE_URL`) |
-| `OPENAI_BASE_URL` | Optional — e.g. `https://nano-gpt.com/api/v1` for NanoGPT |
-| `OPENAI_MODEL_RECEIPT_EXTRACT` | Optional model override for receipt scanning |
-| `ENABLE_RECEIPT_EXTRACT` | Set `true` to show the receipt-scan button |
-| `ENABLE_CATEGORY_EXTRACT` | Set `true` for AI category suggestions |
-| `NANOGPT_API_KEY` | NanoGPT API key for receipt scanning |
-| `NANOGPT_BASE_URL` | NanoGPT base URL (`https://nano-gpt.com/api/v1`) |
-| `NANOGPT_MODEL` | Default model override (optional) |
+| Variable                       | Description                                                  |
+| ------------------------------ | ------------------------------------------------------------ |
+| `POSTGRES_PRISMA_URL`          | Pooled connection string                                     |
+| `POSTGRES_URL_NON_POOLING`     | Direct connection string                                     |
+| `AUTH_SECRET`                  | Random 32-byte base64 string (`openssl rand -base64 32`)     |
+| `AUTH_URL`                     | Your production URL, e.g. `https://dhar.vercel.app`          |
+| `GOOGLE_CLIENT_ID`             | From Google Cloud Console                                    |
+| `GOOGLE_CLIENT_SECRET`         | From Google Cloud Console                                    |
+| `OPENAI_API_KEY`               | OpenAI API key (or NanoGPT key when using `OPENAI_BASE_URL`) |
+| `OPENAI_BASE_URL`              | Optional — e.g. `https://nano-gpt.com/api/v1` for NanoGPT    |
+| `OPENAI_MODEL_RECEIPT_EXTRACT` | Optional model override for receipt scanning                 |
+| `ENABLE_RECEIPT_EXTRACT`       | Set `true` to show the receipt-scan button                   |
+| `ENABLE_CATEGORY_EXTRACT`      | Set `true` for AI category suggestions                       |
+| `NANOGPT_API_KEY`              | NanoGPT API key for receipt scanning                         |
+| `NANOGPT_BASE_URL`             | NanoGPT base URL (`https://nano-gpt.com/api/v1`)             |
+| `NANOGPT_MODEL`                | Default model override (optional)                            |
 
 ## Development Commands
 

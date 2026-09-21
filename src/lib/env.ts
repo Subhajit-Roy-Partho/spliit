@@ -133,6 +133,12 @@ const envSchema = z
       interpretBlankEnvVarAsUndefined,
       z.string().optional(),
     ),
+    // GA4 measurement ID (`G-…`) for ANALYTICS_PROVIDER=google. Public by
+    // design — it is embedded in the client-side gtag.js snippet.
+    GOOGLE_ANALYTICS_ID: z.preprocess(
+      interpretBlankEnvVarAsUndefined,
+      z.string().trim().optional(),
+    ),
   })
   .superRefine((env, ctx) => {
     // Either spelling enables the feature, so either has to satisfy the
@@ -173,6 +179,13 @@ const envSchema = z
         code: ZodIssueCode.custom,
         message:
           'If ANALYTICS_PROVIDER is set to "plausible", then PLAUSIBLE_DOMAIN must be specified too',
+      })
+    }
+    if (env.ANALYTICS_PROVIDER === 'google' && !env.GOOGLE_ANALYTICS_ID) {
+      ctx.addIssue({
+        code: ZodIssueCode.custom,
+        message:
+          'If ANALYTICS_PROVIDER is set to "google", then GOOGLE_ANALYTICS_ID must be specified too',
       })
     }
   })
